@@ -1,38 +1,40 @@
-package flow
+package blocks
+
+import ".."
 
 // Creates a variety of blocks for paired operations
-func opUnary(id InstanceID, inT TypeStr, outT TypeStr, outname string, opfunc func(in ParamValues, out *ParamValues)) FunctionBlock {
+func opUnary(id flow.InstanceID, inT flow.TypeStr, outT flow.TypeStr, outname string, opfunc func(in flow.ParamValues, out *flow.ParamValues)) flow.FunctionBlock {
     // Create Plus block
-    ins := ParamTypes{"IN": inT}
-    outs := ParamTypes{"OUT": outT}
+    ins := flow.ParamTypes{"IN": inT}
+    outs := flow.ParamTypes{"OUT": outT}
     
     // Define the function as a closure
-    runfunc := func(inputs ParamValues,
-                     outputs chan DataOut,
+    runfunc := func(inputs flow.ParamValues,
+                     outputs chan flow.DataOut,
                      stop chan bool,
-                     err chan FlowError) {
-        data := make(ParamValues)
+                     err chan flow.FlowError) {
+        data := make(flow.ParamValues)
         opfunc(inputs, &data)
-        addr := Address{id: id, name: outname}
-        out := DataOut{Addr: addr, Values: data}
+        addr := flow.NewAddress(id, outname)
+        out := flow.DataOut{Addr: addr, Values: data}
         outputs <- out
         return
     }
     
     // Initialize the block and return
-    return PrimitiveBlock{name: outname, fn: runfunc, id: id, inputs: ins, outputs: outs}
+    return flow.NewPrimitive(outname, runfunc, ins, outs)
 }
 
 // Type conversions
-func FloattoInt(id InstanceID) FunctionBlock {
-    opfunc := func(in ParamValues, out *ParamValues) {
+func FloattoInt(id flow.InstanceID) flow.FunctionBlock {
+    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
         (*out)["OUT"] = int(in["IN"].(float64))
     }
     name := "float_to_int"
     return opUnary(id,"float","int",name,opfunc)
 }
-func InttoFloat(id InstanceID) FunctionBlock {
-    opfunc := func(in ParamValues, out *ParamValues) {
+func InttoFloat(id flow.InstanceID) flow.FunctionBlock {
+    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
         (*out)["OUT"] = float64(in["IN"].(int))
     }
     name := "int_to_float"
@@ -40,29 +42,29 @@ func InttoFloat(id InstanceID) FunctionBlock {
 }
 
 // Mathematical
-func Inc(id InstanceID) FunctionBlock {
-    opfunc := func(in ParamValues, out *ParamValues) {
+func Inc(id flow.InstanceID) flow.FunctionBlock {
+    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
         (*out)["OUT"] = in["IN"].(int) + 1
     }
     name := "increment"
     return opUnary(id,"int","int",name,opfunc)
 }
-func Dec(id InstanceID) FunctionBlock {
-    opfunc := func(in ParamValues, out *ParamValues) {
+func Dec(id flow.InstanceID) flow.FunctionBlock {
+    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
         (*out)["OUT"] = in["IN"].(int) - 1
     }
     name := "decrement"
     return opUnary(id,"int","int",name,opfunc)
 }
-func InvFloat(id InstanceID) FunctionBlock {
-    opfunc := func(in ParamValues, out *ParamValues) {
+func InvFloat(id flow.InstanceID) flow.FunctionBlock {
+    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
         (*out)["OUT"] = -in["IN"].(float64)
     }
     name := "invert_float"
     return opUnary(id,"float","float",name,opfunc)
 }
-func InvInt(id InstanceID) FunctionBlock {
-    opfunc := func(in ParamValues, out *ParamValues) {
+func InvInt(id flow.InstanceID) flow.FunctionBlock {
+    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
         (*out)["OUT"] = -in["IN"].(int)
     }
     name := "invert_int"
@@ -70,8 +72,8 @@ func InvInt(id InstanceID) FunctionBlock {
 }
 
 // Logical
-func InvBool(id InstanceID) FunctionBlock {
-    opfunc := func(in ParamValues, out *ParamValues) {
+func InvBool(id flow.InstanceID) flow.FunctionBlock {
+    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
         (*out)["OUT"] = !in["IN"].(bool)
     }
     name := "invert_bool"

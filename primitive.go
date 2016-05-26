@@ -13,8 +13,9 @@ type Address struct {
     name string
     id InstanceID
 }
+func NewAddress(id InstanceID, name string) Address {return Address{name: name, id: id}}
 func (a Address) GetName() string {return a.name}
-func (a Address) GetID() string {return a.id}
+func (a Address) GetID() InstanceID {return a.id}
 
 // Used to declare an error in the flow pipeline
 type FlowError struct{
@@ -77,8 +78,11 @@ type PrimitiveBlock struct {
 
 // Initializes a FunctionBlock object with given attributes, and an empty parameter list.
 // The only way to create Methods's
+var nblocks map[string]InstanceID = make(map[string]InstanceID)
 func NewPrimitive(name string, function DataStream, inputs ParamTypes, outputs ParamTypes) FunctionBlock {
-    return PrimitiveBlock{name: name,
+    addr := Address{name: name, id: nblocks[name]}
+    nblocks[name] += 1
+    return PrimitiveBlock{addr: addr,
                           fn: function,
                           inputs: inputs,
                           outputs: outputs}
@@ -89,12 +93,12 @@ func (m PrimitiveBlock) GetAddr() Address {return m.addr}
 
 // Returns copies of all parameters in FunctionBlock
 func (m PrimitiveBlock) GetParams() (inputs ParamMap, outputs ParamMap) {
-    inputs = make(ParamMap, 0, len(m.inputs))
+    inputs = make(ParamMap)
     for name, t := range m.inputs {
         inputs[name] = NewParameter(name, t, m.GetAddr())
     }
 
-    outputs = make(ParamMap, 0, len(m.outputs))
+    outputs = make(ParamMap)
     for name, t := range m.outputs {
         outputs[name] = NewParameter(name, t, m.GetAddr())
     }
@@ -170,20 +174,20 @@ func CheckType(param Parameter, val interface{}) bool {
         default:
             return true
     }
+    return true
 }
 
-func BlockRun(blk FunctionBlock, f_in ParamValues, f_stop chan bool) (f_out chan DataOut,
-                                                                      f_stop chan bool,
-                                                                      f_err chan FlowError) {
+func BlockRun(blk FunctionBlock, f_in ParamValues) (f_out chan DataOut,
+                                                    f_stop chan bool,
+                                                    f_err chan FlowError) {
     // Initialize channels
-    f_out  := chan DataOut
-    f_stop := chan bool
-    f_err  := chan FlowError
+    f_out  = make(chan DataOut)
+    f_stop = make(chan bool)
+    f_err  = make(chan FlowError)
         
     // Run in new goroutine
     go blk.Run(f_in, f_out, f_stop, f_err)
-        
-    return f_out, f_stop, f_err
+    return
 }
 
 func Timeout(stop chan bool, sleeptime int) {
@@ -191,7 +195,7 @@ func Timeout(stop chan bool, sleeptime int) {
     stop <- true
 }
 
-func toNum(n interface{}) float64 {
+func ToNum(n interface{}) float64 {
     switch n.(type) {
         case int:
             return float64(n.(int))
