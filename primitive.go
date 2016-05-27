@@ -24,21 +24,6 @@ type FlowError struct{
     Addr Address
 }
 
-// Used to represent a parameter to a FunctionBlock
-// Everything is private, as this struct is immutable
-/*type Parameter struct {
-    addr      Address
-    paramName string
-    paramType TypeStr
-}
-func (p Parameter) GetName() string {return p.paramName}
-func (p Parameter) GetType() TypeStr {return p.paramType}
-func (p Parameter) GetBlock() Address {return p.addr}
-
-func NewParameter(name string, t TypeStr, addr Address) Parameter {
-    return Parameter{addr: addr, paramType: t, paramName: name}
-}*/
-
 // Used to store the outputs of a FunctionBlock, while keeping it's reference.
 type DataOut struct {
     Addr Address
@@ -51,7 +36,6 @@ type TypeStr string
 type InstanceID int
 type ParamValues map[string]interface{}
 type ParamTypes map[string]TypeStr
-//type ParamMap map[string]Parameter
 type DataStream func(inputs ParamValues,
                      outputs chan DataOut,
                      stop chan bool,

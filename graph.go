@@ -4,6 +4,7 @@ type InstanceMap map[Address]FunctionBlock
 type BlockMap map[string]FunctionBlock
 type EdgeMap map[Parameter][]Parameter
 type ReadyMap map[string]bool
+type ParamMap map[string]Parameter
 
 type Graph struct {
     addr        Address
