@@ -97,7 +97,7 @@ func (m PrimitiveBlock) GetParams() (inputs ParamMap, outputs ParamMap) {
     for name, t := range m.inputs {
         inputs[name] = NewParameter(name, t, m.GetAddr())
     }
-
+    
     outputs = make(ParamMap)
     for name, t := range m.outputs {
         outputs[name] = NewParameter(name, t, m.GetAddr())
@@ -111,11 +111,11 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
                             stop chan bool,
                             err chan FlowError) {
     // Check types to ensure inputs are the type defined in input parameters
-    if CheckTypes(inputs, m.inputs) {
+    if !CheckTypes(inputs, m.inputs) {
         err <- FlowError{Ok: false, Info: "Inputs are impropper types.", Addr: m.GetAddr()}
         return
     }
-
+    
     // Duplicate the given channel to pass to the enclosed function
     // Run the function
     f_err  := make(chan FlowError)
@@ -127,8 +127,8 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
     for {
         select {
             case f_return := <-f_out:                                 // If an output is returned
-                if CheckTypes(f_return.Values, m.outputs) {         // Check the types with output parameters
-                    err <- FlowError {Ok: true}                       // If good, return no error
+                if CheckTypes(f_return.Values, m.outputs) {           // Check the types with output parameters
+                    err <- FlowError{Ok: true}                        // If good, return no error
                     outputs <- DataOut{m.GetAddr(), f_return.Values}  // Along with the data
                     return                                            // And stop the function
                 } else {
@@ -152,29 +152,28 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
 // And that all values are of their appropriate types as labeled in in params
 func CheckTypes(values ParamValues, params ParamTypes) (ok bool) {
     for name, typestr := range params {                             // Iterate through all parameters and get their names and types
-        val, _ := values[name]                                      // Get the value of this param from values
+        val := values[name]                                      // Get the value of this param from values
         if !CheckType(NewParameter(name,typestr,Address{}), val) {  // Check the type based on an empty parameter of type typestr
+            fmt.Println(typestr, val)
             return false                                            // If it's not valid, return false
         }
     }
-    return true                                                     // If none are valid, return true
+    return true                                                    // If none are valid, return true
 }
 
 func CheckType(param Parameter, val interface{}) bool {
     t := param.GetType()
     switch val.(type) {
         case string:
-            if t != "string" {return false}
+            if t == "string" {return true}
         case int:
-            if t != "int" && t != "num" {return false}
+            if t == "int" || t == "num" {return true}
         case float64:
-            if t != "float" && t != "num" {return false}
+            if t == "float" || t == "num" {return true}
         case bool:
-            if t != "bool" {return false}
-        default:
-            return true
+            if t == "bool" {return true}
     }
-    return true
+    return false
 }
 
 func BlockRun(blk FunctionBlock, f_in ParamValues) (f_out chan DataOut,

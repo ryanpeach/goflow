@@ -4,7 +4,7 @@ import ".."
 
 // Creates a variety of blocks for paired operations
 func opBinary(addr flow.Address, aT,bT,cT flow.TypeStr,
-              outname string, opfunc func(in flow.ParamValues, out *flow.ParamValues)) flow.FunctionBlock {
+              outname string, opfunc func(in flow.ParamValues, out flow.ParamValues)) flow.FunctionBlock {
     // Create Plus block
     ins := flow.ParamTypes{"A": aT, "B": bT}
     outs := flow.ParamTypes{"OUT": cT}
@@ -15,7 +15,7 @@ func opBinary(addr flow.Address, aT,bT,cT flow.TypeStr,
                      stop chan bool,
                      err chan flow.FlowError) {
         data := make(flow.ParamValues)
-        opfunc(inputs, &data)
+        opfunc(inputs, data)
         out := flow.DataOut{Addr: addr, Values: data}
         outputs <- out
         return
@@ -27,32 +27,32 @@ func opBinary(addr flow.Address, aT,bT,cT flow.TypeStr,
 
 // Numeric Float Functions
 func PlusFloat(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = in["A"].(float64) + in["B"].(float64)
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = in["A"].(float64) + in["B"].(float64)
     }
     name := "numeric_plus_float"
     addr := flow.NewAddress(id, name)
     return opBinary(addr,"float","float","float",name,opfunc)
 }
 func SubFloat(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = in["A"].(float64) - in["B"].(float64)
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = in["A"].(float64) - in["B"].(float64)
     }
     name := "numeric_subtract_float"
     addr := flow.NewAddress(id, name)
     return opBinary(addr,"float","float","float",name,opfunc)
 }
 func MultFloat(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = in["A"].(float64) * in["B"].(float64)
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = in["A"].(float64) * in["B"].(float64)
     }
     name := "numeric_multiply_float"
     addr := flow.NewAddress(id, name)
     return opBinary(addr,"float","float","float",name,opfunc)
 }
 func DivFloat(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = in["A"].(float64) / in["B"].(float64)
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = in["A"].(float64) / in["B"].(float64)
     }
     name := "numeric_divide_float"
     addr := flow.NewAddress(id, name)
@@ -61,40 +61,40 @@ func DivFloat(id flow.InstanceID) flow.FunctionBlock {
 
 // Numeric Int Functions
 func PlusInt(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = in["A"].(int) + in["B"].(int)
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = in["A"].(int) + in["B"].(int)
     }
     name := "numeric_plus_int"
     addr := flow.NewAddress(id, name)
     return opBinary(addr,"int","int","int",name,opfunc)
 }
 func SubInt(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = in["A"].(int) - in["B"].(int)
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = in["A"].(int) - in["B"].(int)
     }
     name := "numeric_subtract_int"
     addr := flow.NewAddress(id, name)
     return opBinary(addr,"int","int","int",name,opfunc)
 }
 func MultInt(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = in["A"].(int) * in["B"].(int)
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = in["A"].(int) * in["B"].(int)
     }
     name := "numeric_multiply_int"
     addr := flow.NewAddress(id, name)
     return opBinary(addr,"int","int","int",name,opfunc)
 }
 func DivInt(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = in["A"].(int) / in["B"].(int)
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = in["A"].(int) / in["B"].(int)
     }
     name := "numeric_divide_int"
     addr := flow.NewAddress(id, name)
     return opBinary(addr,"int","int","int",name,opfunc)
 }
 func Mod(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = in["A"].(int) % in["B"].(int)
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = in["A"].(int) % in["B"].(int)
     }
     name := "numeric_mod_int"
     addr := flow.NewAddress(id, name)
@@ -103,24 +103,24 @@ func Mod(id flow.InstanceID) flow.FunctionBlock {
 
 // Boolean Logic Functions
 func And(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = in["A"].(bool) && in["B"].(bool)
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = in["A"].(bool) && in["B"].(bool)
     }
     name := "logical_and"
     addr := flow.NewAddress(id, name)
     return opBinary(addr,"bool","bool","bool",name,opfunc)
 }
 func Or(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = in["A"].(bool) || in["B"].(bool)
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = in["A"].(bool) || in["B"].(bool)
     }
     name := "logical_or"
     addr := flow.NewAddress(id, name)
     return opBinary(addr,"bool","bool","bool",name,opfunc)
 }
 func Xor(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = in["A"].(bool) != in["B"].(bool)
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = in["A"].(bool) != in["B"].(bool)
     }
     name := "logical_xor"
     addr := flow.NewAddress(id, name)
@@ -130,24 +130,24 @@ func Xor(id flow.InstanceID) flow.FunctionBlock {
 
 // Comparison
 func Greater(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = flow.ToNum(in["A"]) > flow.ToNum(in["B"])
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = flow.ToNum(in["A"]) > flow.ToNum(in["B"])
     }
     name := "greater_than"
     addr := flow.NewAddress(id, name)
     return opBinary(addr,"num","num","bool",name,opfunc)
 }
 func Lesser(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = flow.ToNum(in["A"]) < flow.ToNum(in["B"])
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = flow.ToNum(in["A"]) < flow.ToNum(in["B"])
     }
     name := "lesser_than"
     addr := flow.NewAddress(id, name)
     return opBinary(addr,"num","num","bool",name,opfunc)
 }
 func Equals(id flow.InstanceID) flow.FunctionBlock {
-    opfunc := func(in flow.ParamValues, out *flow.ParamValues) {
-        (*out)["OUT"] = flow.ToNum(in["A"]) == flow.ToNum(in["B"])
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = flow.ToNum(in["A"]) == flow.ToNum(in["B"])
     }
     name := "equals"
     addr := flow.NewAddress(id, name)

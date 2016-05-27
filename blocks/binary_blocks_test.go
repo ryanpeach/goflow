@@ -14,7 +14,7 @@ func testBinary(blk flow.FunctionBlock, a, b, c interface{}, name string) flow.F
 
     // Run block and put a timeout on the stop channel
     go blk.Run(flow.ParamValues{"A": a, "B": b}, f_out, f_stop, f_err)
-    go flow.Timeout(f_stop, 100000)
+    //go flow.Timeout(f_stop, 100000)
     
     // Wait for output or error
     var out flow.DataOut
