@@ -23,6 +23,9 @@ type FlowError struct{
     Info string
     Addr Address
 }
+const (
+    StopInfo = "StopError"
+)
 
 // Used to represent a parameter to a FunctionBlock
 // Everything is private, as this struct is immutable
