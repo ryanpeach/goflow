@@ -3,7 +3,7 @@ package blocks
 import ".."
 
 // Creates a variety of blocks for paired operations
-func opBinary(addr flow.Address, aT,bT,cT flow.TypeStr,
+func opBinary(addr flow.Address, aT,bT,cT flow.Type,
               outname string, opfunc func(in flow.ParamValues, out flow.ParamValues)) flow.FunctionBlock {
     // Create Plus block
     ins := flow.ParamTypes{"A": aT, "B": bT}

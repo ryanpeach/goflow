@@ -32,10 +32,10 @@ type DataOut struct {
 
 // KeyValues and DataStreams are the types of values and functions
 // Used universally inside FunctionBlocks
-type TypeStr string
+type Type int
 type InstanceID int
 type ParamValues map[string]interface{}
-type ParamTypes map[string]TypeStr
+type ParamTypes map[string]Type
 type DataStream func(inputs ParamValues,
                      outputs chan DataOut,
                      stop chan bool,
@@ -127,11 +127,11 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
 
 // Types
 const (
-    String = "string"
-    Int    = "int"
-    Float  = "float"
-    Num    = "num"
-    Bool   = "bool"
+    String = iota
+    Int    = iota
+    Float  = iota
+    Num    = iota
+    Bool   = iota
 )
 
 // Checks if all keys in params are present in values
@@ -147,7 +147,7 @@ func CheckTypes(values ParamValues, params ParamTypes) (ok bool) {
     return true                                                    // If none are valid, return true
 }
 
-func CheckType(t TypeStr, val interface{}) bool {
+func CheckType(t Type, val interface{}) bool {
     switch val.(type) {
         case string:
             if t == String {return true}
