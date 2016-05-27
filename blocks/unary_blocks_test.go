@@ -14,7 +14,7 @@ func testUnary(blk flow.FunctionBlock, a, c interface{}, name string) flow.FlowE
 
     // Run block and put a timeout on the stop channel
     go blk.Run(flow.ParamValues{"IN": a}, f_out, f_stop, f_err, 0)
-    go flow.Timeout(f_stop, 100000)
+    //go flow.Timeout(f_stop, 100000)
     addr := flow.NewAddress(0, blk.GetName())
     
     // Wait for output or error
