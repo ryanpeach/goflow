@@ -61,7 +61,7 @@ Now run it like this.
     stop    := make(chan bool)
     err     := make(chan flow.FlowError)
 
-    go sqrtblk.Run(inputs, outputs, stop, err)
+    go sqrtblk.Run(inputs, outputs, stop, err, 0)
 
 The output and err channel you read from, the stop channel you may write to.
 
