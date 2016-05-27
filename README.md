@@ -19,6 +19,7 @@ All elements in this library implement an interface type FunctionBlock:
     }
     
 They can be run by passing the appropriate data and channels to the Run function.
+
 1. inputs: All inputs are required to begin running a block.
 2. outputs: Outputs are passed upon successful completion
 3. stop: Stop is an input command to call for the immediate termination of this and all subblocks.
