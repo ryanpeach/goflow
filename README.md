@@ -52,9 +52,9 @@ Lets say this is the only function you need, no graph. You can read from a datab
 
     params_in, params_out := sqrtblk.GetParams()
 
-params_in and params_out are Parameter structs with methods GetName() and GetType().
+params_in and params_out are maps linking names to types, as defined by enum constant in flow.
 
-So run it like this.
+Now run it like this.
 
     inputs  := map[string]interface{}{"IN": float64(2)}
     outputs := make(chan map[string]interface{})
