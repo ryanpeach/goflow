@@ -13,8 +13,9 @@ func testUnary(blk flow.FunctionBlock, a, c interface{}, name string) flow.FlowE
     f_err := make(chan flow.FlowError)
 
     // Run block and put a timeout on the stop channel
-    go blk.Run(flow.ParamValues{"IN": a}, f_out, f_stop, f_err)
+    go blk.Run(flow.ParamValues{"IN": a}, f_out, f_stop, f_err, 0)
     go flow.Timeout(f_stop, 100000)
+    addr := flow.NewAddress(0, blk.GetName())
     
     // Wait for output or error
     var out flow.DataOut
@@ -28,15 +29,15 @@ func testUnary(blk flow.FunctionBlock, a, c interface{}, name string) flow.FlowE
                     return err
                 }
             case <-f_stop:
-                return flow.FlowError{Ok: false, Info: "Timeout", Addr: blk.GetAddr()}
+                return flow.FlowError{Ok: false, Info: "Timeout", Addr: addr}
         }
     }
     
     // Test the output
     if out.Values["OUT"] != c {
-        return flow.FlowError{Ok: false, Info: "Returned wrong value.", Addr: blk.GetAddr()}
+        return flow.FlowError{Ok: false, Info: "Returned wrong value.", Addr: addr}
     } else {
-        return flow.FlowError{Ok: true, Addr: blk.GetAddr()}
+        return flow.FlowError{Ok: true, Addr: addr}
     }
 }
 
