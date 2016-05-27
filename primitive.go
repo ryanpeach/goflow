@@ -26,7 +26,7 @@ type FlowError struct{
 
 // Used to represent a parameter to a FunctionBlock
 // Everything is private, as this struct is immutable
-type Parameter struct {
+/*type Parameter struct {
     addr      Address
     paramName string
     paramType TypeStr
@@ -37,7 +37,7 @@ func (p Parameter) GetBlock() Address {return p.addr}
 
 func NewParameter(name string, t TypeStr, addr Address) Parameter {
     return Parameter{addr: addr, paramType: t, paramName: name}
-}
+}*/
 
 // Used to store the outputs of a FunctionBlock, while keeping it's reference.
 type DataOut struct {
@@ -51,7 +51,7 @@ type TypeStr string
 type InstanceID int
 type ParamValues map[string]interface{}
 type ParamTypes map[string]TypeStr
-type ParamMap map[string]Parameter
+//type ParamMap map[string]Parameter
 type DataStream func(inputs ParamValues,
                      outputs chan DataOut,
                      stop chan bool,
@@ -155,7 +155,7 @@ const (
 func CheckTypes(values ParamValues, params ParamTypes) (ok bool) {
     for name, typestr := range params {                             // Iterate through all parameters and get their names and types
         val := values[name]                                      // Get the value of this param from values
-        if !CheckType(NewParameter(name,typestr,Address{}), val) {  // Check the type based on an empty parameter of type typestr
+        if !CheckType(typestr, val) {  // Check the type based on an empty parameter of type typestr
             fmt.Println(typestr, val)
             return false                                            // If it's not valid, return false
         }
@@ -163,8 +163,7 @@ func CheckTypes(values ParamValues, params ParamTypes) (ok bool) {
     return true                                                    // If none are valid, return true
 }
 
-func CheckType(param Parameter, val interface{}) bool {
-    t := param.GetType()
+func CheckType(t TypeStr, val interface{}) bool {
     switch val.(type) {
         case string:
             if t == String {return true}
