@@ -29,13 +29,13 @@ type FlowError struct{
 /*type Parameter struct {
     addr      Address
     paramName string
-    paramType TypeStr
+    paramType Type
 }
 func (p Parameter) GetName() string {return p.paramName}
-func (p Parameter) GetType() TypeStr {return p.paramType}
+func (p Parameter) GetType() Type {return p.paramType}
 func (p Parameter) GetBlock() Address {return p.addr}
 
-func NewParameter(name string, t TypeStr, addr Address) Parameter {
+func NewParameter(name string, t Type, addr Address) Parameter {
     return Parameter{addr: addr, paramType: t, paramName: name}
 }*/
 
@@ -47,10 +47,10 @@ type DataOut struct {
 
 // KeyValues and DataStreams are the types of values and functions
 // Used universally inside FunctionBlocks
-type TypeStr string
+type Type int
 type InstanceID int
 type ParamValues map[string]interface{}
-type ParamTypes map[string]TypeStr
+type ParamTypes map[string]Type
 //type ParamMap map[string]Parameter
 type DataStream func(inputs ParamValues,
                      outputs chan DataOut,
@@ -143,11 +143,11 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
 
 // Types
 const (
-    String = "string"
-    Int    = "int"
-    Float  = "float"
-    Num    = "num"
-    Bool   = "bool"
+    String = iota
+    Int    = iota
+    Float  = iota
+    Num    = iota
+    Bool   = iota
 )
 
 // Checks if all keys in params are present in values
@@ -163,7 +163,7 @@ func CheckTypes(values ParamValues, params ParamTypes) (ok bool) {
     return true                                                    // If none are valid, return true
 }
 
-func CheckType(t TypeStr, val interface{}) bool {
+func CheckType(t Type, val interface{}) bool {
     switch val.(type) {
         case string:
             if t == String {return true}

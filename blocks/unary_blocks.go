@@ -3,7 +3,7 @@ package blocks
 import ".."
 
 // Creates a variety of blocks for paired operations
-func opUnary(id flow.InstanceID, inT flow.TypeStr, outT flow.TypeStr, outname string,
+func opUnary(id flow.InstanceID, inT flow.Type, outT flow.Type, outname string,
              opfunc func(in flow.ParamValues, out flow.ParamValues)) flow.FunctionBlock {
     // Create Plus block
     ins := flow.ParamTypes{"IN": inT}
