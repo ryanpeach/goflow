@@ -3,7 +3,6 @@ package blocks
 import (
     "fmt"
     "testing"
-    ".."
 )
 
 // Testing Type Conversions
