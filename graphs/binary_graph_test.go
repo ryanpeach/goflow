@@ -1,23 +1,24 @@
-package flow
+package graphs
 
 import (
     "fmt"
     "testing"
+    "../blocks"
 )
 
 // Logic
-/*
+
 func TestNand(t *testing.T) {
     name := "logical_nand"
     fmt.Println("Testing ", name, "...")
-    blk := Nand(0)
+    blk, _ := Nand(0)
     a, b := true, false
     c := !(a && b)
-    err := testBinary(blk, a, b, c, name)
+    err := blocks.TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
-}
+}/*
 func TestNor(t *testing.T) {
     name := "logical_nor"
     fmt.Println("Testing ", name, "...")
@@ -29,7 +30,7 @@ func TestNor(t *testing.T) {
         t.Error(err.Info)
     }
 }
-*/
+
 
 // Comparison
 func TestGreaterEquals(t *testing.T) {
@@ -54,7 +55,7 @@ func TestLesserEquals(t *testing.T) {
         t.Error(err.Info)
     }
 }
-/*
+
 func TestNotEquals(t *testing.T) {
     name := "not_equal_to"
     fmt.Println("Testing ", name, "...")

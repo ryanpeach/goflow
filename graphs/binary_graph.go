@@ -1,25 +1,32 @@
-package flow
+package graphs
 
-func Nand(id InstanceID) FunctionBlock {
-    // Create Nodes
-    and, not := And(0), InvBool(0)
-    A := InstanceMap{0: and}
-    N := InstanceMap{0: not}
-    nodes := InstanceMap{Address{"And",0}: A, Address{"Not",0}: N}
+import (
+    ".."
+    "../blocks"
+)
+
+func Nand(id flow.InstanceID) (flow.Graph, flow.Address) {
+    // Create Graph
+    ins  := flow.ParamTypes{"A": flow.Bool, "B": flow.Bool}
+    outs := flow.ParamTypes{"OUT": flow.Bool}
+    graph := flow.NewGraph("logical_nand", ins, outs)
+    addr := flow.NewAddress(id, "logical_nand")
     
-    // Create Input Outputs
-    and_ins, and_outs := and.GetParams()
-    not_ins, not_outs := not.GetParams()
-    in_A := NewParameter("A", "bool", and.GetAddr())
-    in_B := and_ins["B"]
-    out_C := not_outs["OUT"]
-    inputs := ParamMap{"A": in_A, "B": in_B}
-    outputs := ParamMap{"OUT": out_C}
+    // Create Blocks
+    and, and_addr := blocks.And(0)
+    not, not_addr := blocks.InvBool(0)
     
-    // Create Edges
-    edges := EdgeMap{and_outs["OUT"]: []Parameter{not_ins["IN"]}}
+    // Add Nodes
+    graph.AddNode(and, and_addr)
+    graph.AddNode(not, not_addr)
     
-    return NewGraph("logical_nand", id, nodes, edges, inputs, outputs)
+    // Add Edges
+    graph.LinkIn("A", "A", and_addr)
+    graph.LinkIn("B", "B", and_addr)
+    graph.AddEdge(and_addr, "OUT", not_addr, "IN")
+    graph.LinkOut(not_addr, "OUT", "OUT")
+    
+    return graph, addr
 }
     
 

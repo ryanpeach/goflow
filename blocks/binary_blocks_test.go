@@ -6,50 +6,14 @@ import (
     ".."
 )
 
-func testBinary(blk flow.FunctionBlock, a, b, c interface{}, name string) flow.FlowError {
-    
-    // Run a Plus block
-    f_out := make(chan flow.DataOut)
-    f_stop := make(chan bool)
-    f_err := make(chan flow.FlowError)
-
-    // Run block and put a timeout on the stop channel
-    go blk.Run(flow.ParamValues{"A": a, "B": b}, f_out, f_stop, f_err, 0)
-    //go flow.Timeout(f_stop, 100000)
-    addr := flow.NewAddress(0, blk.GetName())
-    
-    // Wait for output or error
-    var out flow.DataOut
-    var cont bool = true
-    for cont {
-        select {
-            case out = <-f_out:
-                cont = false
-            case err := <-f_err:
-                if !err.Ok {
-                    return err
-                }
-            case <-f_stop:
-                return flow.FlowError{Ok: false, Info: "Timeout", Addr: addr}
-        }
-    }
-    
-    // Test the output
-    if out.Values["OUT"] != c {
-        return flow.FlowError{Ok: false, Info: "Returned wrong value.", Addr: addr}
-    } else {
-        return flow.FlowError{Ok: true, Addr: addr}
-    }
-}
-
 // Testing Float Numerics
 func TestPlusFloat(t *testing.T) {
     name := "PlusFloat"
     fmt.Println("Testing ", name, "...")
-    blk := PlusFloat(0)
+    blk, _ := PlusFloat(0)
     a, b := 5.1, 2.2
     c := float64(a + b)
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -57,10 +21,10 @@ func TestPlusFloat(t *testing.T) {
 func TestSubFloat(t *testing.T) {
     name := "SubFloat"
     fmt.Println("Testing ", name, "...")
-    blk := SubFloat(0)
+    blk, _ := SubFloat(0)
     a, b := 5.1, 2.2
     c := float64(a - b)
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -68,10 +32,10 @@ func TestSubFloat(t *testing.T) {
 func TestMultFloat(t *testing.T) {
     name := "MultFloat"
     fmt.Println("Testing ", name, "...")
-    blk := MultFloat(0)
+    blk, _ := MultFloat(0)
     a, b := 5.1, 2.2
     c := float64(a * b)
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -79,10 +43,10 @@ func TestMultFloat(t *testing.T) {
 func TestDivFloat(t *testing.T) {
     name := "DivFloat"
     fmt.Println("Testing ", name, "...")
-    blk := DivFloat(0)
+    blk, _ := DivFloat(0)
     a, b := 5.1, 2.2
     c := float64(a / b)
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -93,10 +57,10 @@ func TestDivFloat(t *testing.T) {
 func TestPlusInt(t *testing.T) {
     name := "PlusInt"
     fmt.Println("Testing ", name, "...")
-    blk := PlusInt(0)
+    blk, _ := PlusInt(0)
     a, b := 5, 2
     c := int(a + b)
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -104,10 +68,10 @@ func TestPlusInt(t *testing.T) {
 func TestSubInt(t *testing.T) {
     name := "SubInt"
     fmt.Println("Testing ", name, "...")
-    blk := SubInt(0)
+    blk, _ := SubInt(0)
     a, b := 5, 2
     c := int(a - b)
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -115,10 +79,10 @@ func TestSubInt(t *testing.T) {
 func TestMultInt(t *testing.T) {
     name := "MultInt"
     fmt.Println("Testing ", name, "...")
-    blk := MultInt(0)
+    blk, _ := MultInt(0)
     a, b := 5, 2
     c := int(a * b)
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -126,10 +90,10 @@ func TestMultInt(t *testing.T) {
 func TestDivInt(t *testing.T) {
     name := "DivInt"
     fmt.Println("Testing ", name, "...")
-    blk := DivInt(0)
+    blk, _ := DivInt(0)
     a, b := 5, 2
     c := int(a / b)
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -137,10 +101,10 @@ func TestDivInt(t *testing.T) {
 func TestMod(t *testing.T) {
     name := "Mod"
     fmt.Println("Testing ", name, "...")
-    blk := Mod(0)
+    blk, _ := Mod(0)
     a, b := 5, 2
     c := int(a % b)
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -150,10 +114,10 @@ func TestMod(t *testing.T) {
 func TestAnd(t *testing.T) {
     name := "logical_and"
     fmt.Println("Testing ", name, "...")
-    blk := And(0)
+    blk, _ := And(0)
     a, b := true, false
     c := a && b
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -161,10 +125,10 @@ func TestAnd(t *testing.T) {
 func TestOr(t *testing.T) {
     name := "logical_or"
     fmt.Println("Testing ", name, "...")
-    blk := Or(0)
+    blk, _ := Or(0)
     a, b := true, false
     c := a || b
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -172,10 +136,10 @@ func TestOr(t *testing.T) {
 func TestXor(t *testing.T) {
     name := "logical_xor"
     fmt.Println("Testing ", name, "...")
-    blk := Xor(0)
+    blk, _ := Xor(0)
     a, b := true, false
     c := a != b
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -185,10 +149,10 @@ func TestXor(t *testing.T) {
 func TestGreater(t *testing.T) {
     name := "greater_than"
     fmt.Println("Testing ", name, "...")
-    blk := Greater(0)
+    blk, _ := Greater(0)
     a, b := 5, 2
     c := 5 > 2
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -196,10 +160,10 @@ func TestGreater(t *testing.T) {
 func TestLesser(t *testing.T) {
     name := "lesser_than"
     fmt.Println("Testing ", name, "...")
-    blk := Lesser(0)
+    blk, _ := Lesser(0)
     a, b := 5, 2
     c := 5 < 2
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -208,10 +172,10 @@ func TestLesser(t *testing.T) {
 func TestEquals(t *testing.T) {
     name := "equal_to"
     fmt.Println("Testing ", name, "...")
-    blk := Greater(0)
+    blk, _ := Greater(0)
     a, b := 5, 2
     c := 5 > 2
-    err := testBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, name)
     if !err.Ok {
         t.Error(err.Info)
     }

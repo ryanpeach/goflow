@@ -84,11 +84,12 @@ func (m PrimitiveBlock) GetParams() (inputs ParamTypes, outputs ParamTypes) {
 func (m PrimitiveBlock) Run(inputs ParamValues,
                             outputs chan DataOut,
                             stop chan bool,
-                            err chan FlowError, id InstanceID) {
+                            err chan FlowError,
+                            id InstanceID) {
     // Check types to ensure inputs are the type defined in input parameters
-    addr := NewAddress(id, m.GetName())
+    ADDR := NewAddress(-1, m.GetName())
     if !CheckTypes(inputs, m.inputs) {
-        err <- FlowError{Ok: false, Info: "Inputs are impropper types.", Addr: addr}
+        err <- FlowError{Ok: false, Info: "Inputs are impropper types.", Addr: ADDR}
         return
     }
     
@@ -106,11 +107,11 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
             case f_return := <-f_out:                                 // If an output is returned
                 if CheckTypes(f_return.Values, m.outputs) {           // Check the types with output parameters
                     err <- FlowError{Ok: true}                        // If good, return no error
-                    outputs <- DataOut{addr, f_return.Values}  // Along with the data
+                    outputs <- DataOut{ADDR, f_return.Values}  // Along with the data
                     return                                            // And stop the function
                 } else {
                     fmt.Println(f_return)
-                    err <- FlowError{Ok: false, Info: "Wrong output type.", Addr: addr}
+                    err <- FlowError{Ok: false, Info: "Wrong output type.", Addr: ADDR}
                     return
                 }
             case <-stop:                              // If commanded to stop externally
