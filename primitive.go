@@ -10,12 +10,15 @@ const (
 )
 
 type Address struct {
-    name string
-    id InstanceID
+    Name string
+    ID   InstanceID
 }
-func NewAddress(id InstanceID, name string) Address {return Address{name: name, id: id}}
-func (a Address) GetName() string {return a.name}
-func (a Address) GetID() InstanceID {return a.id}
+type ParamAddress struct {
+    Name     string
+    Addr     Address
+    T        Type
+    is_input bool
+}
 
 // Used to declare an error in the flow pipeline
 type FlowError struct{
@@ -23,21 +26,6 @@ type FlowError struct{
     Info string
     Addr Address
 }
-
-// Used to represent a parameter to a FunctionBlock
-// Everything is private, as this struct is immutable
-/*type Parameter struct {
-    addr      Address
-    paramName string
-    paramType Type
-}
-func (p Parameter) GetName() string {return p.paramName}
-func (p Parameter) GetType() Type {return p.paramType}
-func (p Parameter) GetBlock() Address {return p.addr}
-
-func NewParameter(name string, t Type, addr Address) Parameter {
-    return Parameter{addr: addr, paramType: t, paramName: name}
-}*/
 
 // Used to store the outputs of a FunctionBlock, while keeping it's reference.
 type DataOut struct {
@@ -50,8 +38,7 @@ type DataOut struct {
 type Type int
 type InstanceID int
 type ParamValues map[string]interface{}
-type ParamTypes map[string]Type
-//type ParamMap map[string]Parameter
+type ParamTypes  map[string]Type
 type DataStream func(inputs ParamValues,
                      outputs chan DataOut,
                      stop chan bool,
@@ -100,11 +87,12 @@ func (m PrimitiveBlock) GetParams() (inputs ParamTypes, outputs ParamTypes) {
 func (m PrimitiveBlock) Run(inputs ParamValues,
                             outputs chan DataOut,
                             stop chan bool,
-                            err chan FlowError, id InstanceID) {
+                            err chan FlowError,
+                            id InstanceID) {
     // Check types to ensure inputs are the type defined in input parameters
-    addr := NewAddress(id, m.GetName())
+    ADDR := Address{m.GetName(), id}
     if !CheckTypes(inputs, m.inputs) {
-        err <- FlowError{Ok: false, Info: "Inputs are impropper types.", Addr: addr}
+        err <- FlowError{Ok: false, Info: "Inputs are impropper types.", Addr: ADDR}
         return
     }
     
@@ -122,11 +110,11 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
             case f_return := <-f_out:                                 // If an output is returned
                 if CheckTypes(f_return.Values, m.outputs) {           // Check the types with output parameters
                     err <- FlowError{Ok: true}                        // If good, return no error
-                    outputs <- DataOut{addr, f_return.Values}  // Along with the data
+                    outputs <- DataOut{ADDR, f_return.Values}  // Along with the data
                     return                                            // And stop the function
                 } else {
                     fmt.Println(f_return)
-                    err <- FlowError{Ok: false, Info: "Wrong output type.", Addr: addr}
+                    err <- FlowError{Ok: false, Info: "Wrong output type.", Addr: ADDR}
                     return
                 }
             case <-stop:                              // If commanded to stop externally
@@ -174,7 +162,12 @@ func CheckType(t Type, val interface{}) bool {
         case bool:
             if t == Bool {return true}
     }
+    fmt.Println("Wrong Type: ", val, t)
     return false
+}
+
+func CheckCompatibility(t1, t2 Type) bool {
+    return t1 == t2
 }
 
 // An easy way to initialize a block and get it's channels
