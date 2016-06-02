@@ -7,22 +7,21 @@ import (
 )
 
 // Source: http://changelog.ca/log/2015/03/09/golang
-const logMode = "None"
-func createLogger() *log.Logger {
+func CreateLogger(logMode, tag string) *log.Logger {
     switch logMode {
-        case "file":
-            out, err := os.Create("./log/graphlog.log")
+        case "none":
+            out := ioutil.Discard
+            return log.New(out, tag, log.Lshortfile)
+        case "screen":
+            out := os.Stdout
+            return log.New(out, tag, log.Lshortfile)
+        default:
+            out, err := os.Create(logMode)
             if nil != err {
                 panic(err.Error())
             } else {
-                return log.New(out, "[THING]", log.Lshortfile)
+                return log.New(out, tag, log.Lshortfile)
             }
-        case "screen":
-            out := os.Stdout
-            return log.New(out, "[THING]", log.Lshortfile)
-        default:
-            out := ioutil.Discard
-            return log.New(out, "[THING]", log.Lshortfile)
     }
 }
 
@@ -130,7 +129,7 @@ func (g Graph) Run(inputs ParamValues,
                    outputs chan DataOut,
                    stop chan bool,
                    err chan FlowError, id InstanceID) {
-    logger := createLogger()
+    logger := CreateLogger("none", "[INFO]")
     
     ADDR := Address{g.GetName(), id}
     logger.Println("Running Graph: ", ADDR)
