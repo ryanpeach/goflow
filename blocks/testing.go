@@ -11,7 +11,7 @@ func TestUnary(blk flow.FunctionBlock, a, c interface{}, name string) flow.FlowE
     // Run block and put a timeout on the stop channel
     go blk.Run(flow.ParamValues{"IN": a}, f_out, f_stop, f_err, 0)
     //go flow.Timeout(f_stop, 100000)
-    addr := flow.NewAddress(0, blk.GetName())
+    addr := flow.Address{blk.GetName(), 0}
     
     // Wait for output or error
     var out flow.DataOut
@@ -24,8 +24,6 @@ func TestUnary(blk flow.FunctionBlock, a, c interface{}, name string) flow.FlowE
                 if !err.Ok {
                     return err
                 }
-            case <-f_stop:
-                return flow.FlowError{Ok: false, Info: "Timeout", Addr: addr}
         }
     }
     
@@ -47,7 +45,7 @@ func TestBinary(blk flow.FunctionBlock, a, b, c interface{}, name string) flow.F
     // Run block and put a timeout on the stop channel
     go blk.Run(flow.ParamValues{"A": a, "B": b}, f_out, f_stop, f_err, 0)
     //go flow.Timeout(f_stop, 100000)
-    addr := flow.NewAddress(0, blk.GetName())
+    addr := flow.Address{blk.GetName(), 0}
     
     // Wait for output or error
     var out flow.DataOut
@@ -60,8 +58,6 @@ func TestBinary(blk flow.FunctionBlock, a, b, c interface{}, name string) flow.F
                 if !err.Ok {
                     return err
                 }
-            case <-f_stop:
-                return flow.FlowError{Ok: false, Info: "Timeout", Addr: addr}
         }
     }
     

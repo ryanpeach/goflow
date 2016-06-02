@@ -10,12 +10,15 @@ const (
 )
 
 type Address struct {
-    name string
-    id InstanceID
+    Name string
+    ID   InstanceID
 }
-func NewAddress(id InstanceID, name string) Address {return Address{name: name, id: id}}
-func (a Address) GetName() string {return a.name}
-func (a Address) GetID() InstanceID {return a.id}
+type ParamAddress struct {
+    Name     string
+    Addr     Address
+    T        Type
+    is_input bool
+}
 
 // Used to declare an error in the flow pipeline
 type FlowError struct{
@@ -35,7 +38,7 @@ type DataOut struct {
 type Type int
 type InstanceID int
 type ParamValues map[string]interface{}
-type ParamTypes map[string]Type
+type ParamTypes  map[string]Type
 type DataStream func(inputs ParamValues,
                      outputs chan DataOut,
                      stop chan bool,
@@ -87,7 +90,7 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
                             err chan FlowError,
                             id InstanceID) {
     // Check types to ensure inputs are the type defined in input parameters
-    ADDR := NewAddress(-1, m.GetName())
+    ADDR := Address{m.GetName(), id}
     if !CheckTypes(inputs, m.inputs) {
         err <- FlowError{Ok: false, Info: "Inputs are impropper types.", Addr: ADDR}
         return
@@ -159,7 +162,12 @@ func CheckType(t Type, val interface{}) bool {
         case bool:
             if t == Bool {return true}
     }
+    fmt.Println("Wrong Type: ", val, t)
     return false
+}
+
+func CheckCompatibility(t1, t2 Type) bool {
+    return t1 == t2
 }
 
 // An easy way to initialize a block and get it's channels

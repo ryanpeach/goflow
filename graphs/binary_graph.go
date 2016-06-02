@@ -10,7 +10,7 @@ func Nand(id flow.InstanceID) (flow.Graph, flow.Address) {
     ins  := flow.ParamTypes{"A": flow.Bool, "B": flow.Bool}
     outs := flow.ParamTypes{"OUT": flow.Bool}
     graph := flow.NewGraph("logical_nand", ins, outs)
-    addr := flow.NewAddress(id, "logical_nand")
+    addr := flow.Address{"logical_nand", id}
     
     // Create Blocks
     and, and_addr := blocks.And(0)
