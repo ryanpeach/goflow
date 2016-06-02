@@ -19,6 +19,7 @@ All elements in this library implement an interface type FunctionBlock:
     }
     
 They can be run by passing the appropriate data and channels to the Run function.
+
 1. inputs: All inputs are required to begin running a block.
 2. outputs: Outputs are passed upon successful completion
 3. stop: Stop is an input command to call for the immediate termination of this and all subblocks.
@@ -51,16 +52,16 @@ Lets say this is the only function you need, no graph. You can read from a datab
 
     params_in, params_out := sqrtblk.GetParams()
 
-params_in and params_out are Parameter structs with methods GetName() and GetType().
+params_in and params_out are maps linking names to types, as defined by enum constant in flow.
 
-So run it like this.
+Now run it like this.
 
     inputs  := map[string]interface{}{"IN": float64(2)}
     outputs := make(chan map[string]interface{})
     stop    := make(chan bool)
     err     := make(chan flow.FlowError)
 
-    go sqrtblk.Run(inputs, outputs, stop, err)
+    go sqrtblk.Run(inputs, outputs, stop, err, 0)
 
 The output and err channel you read from, the stop channel you may write to.
 
