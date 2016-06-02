@@ -1,8 +1,30 @@
 package flow
 
 import (
-    "fmt"
+    "os"
+    "log"
+    "io/ioutil"
 )
+
+// Source: http://changelog.ca/log/2015/03/09/golang
+const logMode = "None"
+func createLogger() *log.Logger {
+    switch logMode {
+        case "file":
+            out, err := os.Create("./log/graphlog.log")
+            if nil != err {
+                panic(err.Error())
+            } else {
+                return log.New(out, "[THING]", log.Lshortfile)
+            }
+        case "screen":
+            out := os.Stdout
+            return log.New(out, "[THING]", log.Lshortfile)
+        default:
+            out := ioutil.Discard
+            return log.New(out, "[THING]", log.Lshortfile)
+    }
+}
 
 type InstanceMap map[Address]FunctionBlock
 type EdgeMap map[ParamAddress][]ParamAddress
@@ -43,14 +65,14 @@ func (g Graph) AddNode(blk FunctionBlock, addr Address) (ok bool) {
 // out_addr[out_param_name] -> in_addr[in_param_name]
 func (g Graph) AddEdge(out_addr Address, out_param_name string,
                        in_addr Address, in_param_name string) (ok bool) {
-    fmt.Println("Adding Edge: ", out_addr, out_param_name, " -> ", in_addr, in_param_name)
+    //logger.Println("Adding Edge: ", out_addr, out_param_name, " -> ", in_addr, in_param_name)
     ok = false
     out_param, out_exists := g.FindParam(out_param_name, out_addr)  // Get the output parameters of out_blk
     in_param, in_exists := g.FindParam(in_param_name, in_addr)   // Get the input parameters of in_blk
     if in_exists && out_exists {              // If both exist
         if CheckCompatibility(in_param.T, out_param.T) && in_param.is_input && !out_param.is_input {
             g.edges[out_param] = append(g.edges[out_param], in_param)          // Append the new link to the edges under the out_param
-            fmt.Println("Edge Added: ", g.edges[out_param])
+            //logger.Println("Edge Added: ", g.edges[out_param])
             ok = true
         }
     }
@@ -108,8 +130,10 @@ func (g Graph) Run(inputs ParamValues,
                    outputs chan DataOut,
                    stop chan bool,
                    err chan FlowError, id InstanceID) {
+    logger := createLogger()
+    
     ADDR := Address{g.GetName(), id}
-    fmt.Println("Running Graph: ", ADDR)
+    logger.Println("Running Graph: ", ADDR)
     
     // Check types to ensure inputs are the type defined in input parameters
     if !CheckTypes(inputs, g.inputs) {
@@ -130,16 +154,16 @@ func (g Graph) Run(inputs ParamValues,
     graph_out     := make(ParamValues)              // The output for the entire graph
 
     // Put all nodes in waiting
-    fmt.Println("Putting all nodes in waiting.")
+    logger.Println("Putting all nodes in waiting.")
     for addr, blk := range g.nodes {
         all_waiting[addr] = blk
     }
 
     // Create some functions for simplified code structure
-    fmt.Println("Defining Functions")
+    logger.Println("Defining Functions")
     // Stops all children blocks
     stopAll := func() {
-        fmt.Println("Stopping all.")
+        logger.Println("Stopping all.")
         // Push stop down to all subfunctions
         for _, val := range all_stops {
             val <- true
@@ -149,15 +173,15 @@ func (g Graph) Run(inputs ParamValues,
     
     // Pushes an error up the pipeline and stops all blocks
     pushError := func(info string) {
-        fmt.Println("Pushing Error: ", info)
+        logger.Println("Pushing Error: ", info)
         flow_errs <- FlowError{Ok: false, Info: info, Addr: ADDR}
         stopAll()
     }
     
     // Adds data to all_data_in, creates ParamValues struct if necessary.
     handleInput := func(param ParamAddress, val interface{}) (ok bool) {
-        fmt.Println("Handling Inputs.")
-        fmt.Println("Param: ", param, "Val: ", val)
+        logger.Println("Handling Inputs.")
+        logger.Println("Param: ", param, "Val: ", val)
         _ , param_exists := all_data_in[param]                        // Get the input value and check if it exists
         if CheckType(param.T, val) || !param_exists {                  // Check the type of param relative to val and check if it exists
             ok = true                                                  // If it is ok, then return true
@@ -166,7 +190,7 @@ func (g Graph) Run(inputs ParamValues,
             ok = false                                                 // Return false
             pushError("Input is not the right type.")
         }
-        fmt.Println("Check: ", all_data_in[param], all_data_in[param] == val)
+        logger.Println("Check: ", all_data_in[param], all_data_in[param] == val)
         return
     }
     
@@ -174,7 +198,7 @@ func (g Graph) Run(inputs ParamValues,
     // Adds data to all_data_out
     // Deletes from all_running and adds to all_waiting
     handleOutput := func(vals DataOut) {
-        fmt.Println("Handling Output: ", vals)
+        logger.Println("Handling Output: ", vals)
         V    := vals.Values                     // Get values for easy access
         addr := vals.Addr                       // Get address for easy access
         blk  := all_running[addr]               // Retrieve the block from running
@@ -201,13 +225,13 @@ func (g Graph) Run(inputs ParamValues,
     // Iterates through all given inputs and adds them to method's all_data_ins.
     loadvars := func() {
         // Main loop
-        fmt.Println("Loading Variables.")
+        logger.Println("Loading Variables.")
         for name , param_lst := range g.infeed {         // Iterate through the names/values given in function parameters
             for _, node_param := range param_lst {
                 val, exists := inputs[name]          // Lookup this parameter in the graph inputs
                 if exists {                          // If the parameter does exist
                     handleInput(node_param, val)     // Add the value to all_data_in
-                    fmt.Println(node_param, val, all_data_in[node_param])
+                    logger.Println(node_param, val, all_data_in[node_param])
                 } else {                             // Otherwise, error
                     pushError("Input parameter does not exist.")
                     return
@@ -221,12 +245,12 @@ func (g Graph) Run(inputs ParamValues,
     // If so, it runs them...
     // Deleting them from waiting, and placing them in running.
     checkWaiting := func() (ran bool) {
-        fmt.Println("Checking Waiting.")
+        logger.Println("Checking Waiting.")
         
-        //fmt.Println("Data In: ", all_data_in)
+        //logger.Println("Data In: ", all_data_in)
         // Runs a block and moves it from waiting to running, catalogues all channels
         blockRun := func(addr Address, blk FunctionBlock, f_in ParamValues) {
-            fmt.Println("Running ", blk.GetName())
+            logger.Println("Running ", blk.GetName())
             f_stop := make(chan bool)                                // Make a stop channel
             go blk.Run(f_in, data_flow, f_stop, flow_errs, addr.ID)  // Run the block as a goroutine
             delete(all_waiting, addr)                                // Delete the block from waiting
@@ -252,7 +276,7 @@ func (g Graph) Run(inputs ParamValues,
                 in_val, val_exists := all_data_in[param]        // Get their stored values
                 if val_exists {
                     if !CheckType(t, in_val) {
-                        fmt.Println(param_name, t, in_val, val_exists)
+                        logger.Println(param_name, t, in_val, val_exists)
                         pushError("Input parameter is not the right type.")
                         return false
                     } else {
@@ -273,19 +297,19 @@ func (g Graph) Run(inputs ParamValues,
     // Monitor the data_flow channel for the next incoming data.
     // Blocks until some packet is received, either data, stop, or error 
     checkRunning := func() (found bool) {
-        fmt.Println("Checking running")
+        logger.Println("Checking running")
         // Wait for some data input
         found = false
         done := false
         for running && !done {                  // Do not begin waiting if this block is not running
-            fmt.Println("Waiting for data input.")
+            logger.Println("Waiting for data input.")
             select {                            // Wait for input
                 case data := <- data_flow:      // If there is data input
                     handleOutput(data)          // Handle it
                     found = true                // Declare data was found
                     done = true
                 case e := <- flow_errs:         // If it is an error
-                    fmt.Println("Error Returned: ", e)
+                    logger.Println("Error Returned: ", e)
                     if !e.Ok {                  // Check to see if it's dangerous
                         pushError(e.Info)       // If it is dangerous, push the error
                         done = true
@@ -324,9 +348,9 @@ func (g Graph) Run(inputs ParamValues,
     shiftData := func() (success bool) {
         
         // Shift data from all_data_out to all_data_in
-        fmt.Println("Shifting Data")
+        logger.Println("Shifting Data")
         for out_p, val := range all_data_out {
-            fmt.Println("HERE", out_p, g.edges[out_p])
+            logger.Println("HERE", out_p, g.edges[out_p])
             for _, in_p := range g.edges[out_p] {              // Iterate through all linked inputs
                 ok := handleInput(in_p, val)                   // Check the type and add it to all_data_in
                 if ok {
@@ -338,13 +362,13 @@ func (g Graph) Run(inputs ParamValues,
         }
         
         // Shift data to the graph_out by iterating through the outfeed
-        fmt.Println("Shifting Data to Output")
+        logger.Println("Shifting Data to Output")
         for self_param_name, param_lst := range g.outfeed {
             for _, node_param := range param_lst {
                 val, exists := all_data_out[node_param]
                 if exists {
                     graph_out[self_param_name] = val
-                    fmt.Println("Graph Out: ", val, graph_out[self_param_name])
+                    logger.Println("Graph Out: ", val, graph_out[self_param_name])
                 }
             }
         }
@@ -353,20 +377,20 @@ func (g Graph) Run(inputs ParamValues,
     
     // Returns true if all parameters in g.outputs referenced in graph_out
     checkDone := func() (done bool) {
-        fmt.Println("Checking Done")
+        logger.Println("Checking Done")
         for name, _ := range g.outfeed {                // Iterate through all output parameters
             _, exists := graph_out[name]                // Check if each parameters exist in graph_out
             if !exists {return false}                   // If any does not exist, immediately return false
         }
-        fmt.Println("DONE!!!")
+        logger.Println("DONE!!!")
         return true                                     // If you pass the loop, all exist, return true
     }
     
-    fmt.Println("Done Defining Functions")
+    logger.Println("Done Defining Functions")
     
     // Main Logic
     loadvars()                   // Begin by loading all inputs into the data maps and adding all blocks to waiting
-    fmt.Println("Done Loading")
+    logger.Println("Done Loading")
     for running {
         checkWaiting()               // Then run waiting blocks that have all inputs availible
         checkRunning()               // Then, wait for some return on a running block

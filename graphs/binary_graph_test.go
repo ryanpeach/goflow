@@ -1,7 +1,6 @@
 package graphs
 
 import (
-    "fmt"
     "testing"
     "../blocks"
 )
@@ -10,7 +9,7 @@ import (
 
 func TestNand(t *testing.T) {
     name := "logical_nand"
-    fmt.Println("Testing ", name, "...")
+    //fmt.Println("Testing ", name, "...")
     blk, _ := Nand(0)
     a, b := true, false
     c := !(a && b)
@@ -18,7 +17,24 @@ func TestNand(t *testing.T) {
     if !err.Ok {
         t.Error(err.Info)
     }
-}/*
+}
+func BenchmarkNand(b *testing.B) {
+    name := "logical_nand"
+    //fmt.Println("Testing ", name, "...")
+    blk, _ := Nand(0)
+    A, B := true, false
+    C := !(A && B)
+    for i := 0; i < b.N; i++ {
+        blocks.TestBinary(blk, A, B, C, name)
+    }
+}
+func BenchmarkNand2(b *testing.B) {
+    out := func() bool {return !(true && false)}
+    for i := 0; i<b.N; i++ {
+        go out()
+    }
+}
+/*
 func TestNor(t *testing.T) {
     name := "logical_nor"
     fmt.Println("Testing ", name, "...")
