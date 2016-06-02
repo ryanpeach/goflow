@@ -71,5 +71,64 @@ Run checks the types of the inputs and the outputs to makes sure everything is i
 
 And now you have the sqrt.
 
+## Graphs
+
+Graphs are function blocks which contain input parameters, output parameters, other function blocks (nodes), and edges connecting parameters (either it's own, or to function blocks).
+
+### Rules
+ * A block only implements once all input data has been set.
+ * A block returns all output data at once, and then terminates.
+ * Outputs connect to multiple inputs. Inputs never connect to outputs.
+ * The Graph moves all data from outputs to linked inputs, once outputs are clear a block may run again.
+ * The Graph removes all data from inputs upon running a block, the block instance may not be run again until it returns an output
+ * The Graph returns immediately upon all output parameters are determined.
+ * Graph output parameters reflect the most recent value of their source.
+
+### Example:
+
+Let's say you want to create a graph representing the Nand function.
+
+First, create two ParamType structures, one for graph inputs and the other for outputs, containing the name of parameters, and their type selected from flow constants.
+
+    ins  := flow.ParamTypes{"A": flow.Bool, "B": flow.Bool}
+    outs := flow.ParamTypes{"OUT": flow.Bool}
+
+Now create your graph:
+
+    graph := flow.NewGraph("logical_nand", ins, outs)
+
+Instantiate some function blocks to use as nodes:
+    
+    and, and_addr := blocks.And(0)
+    not, not_addr := blocks.InvBool(0)
+
+And add them as nodes in the graph using the Graph.AddNode(FunctionBlock, Address) method:
+
+    graph.AddNode(and, and_addr)
+    graph.AddNode(not, not_addr)
+
+Link the graph inputs to some set of node inputs:
+
+    graph.LinkIn("A", "A", and_addr)
+    graph.LinkIn("B", "B", and_addr)
+    
+Link the graph outputs to some node output:
+    
+    graph.LinkOut(not_addr, "OUT", "OUT")
+    
+Connect the nodes together following the Nand pattern, the output of the And to the input of the Not:
+
+    graph.AddEdge(and_addr, "OUT", not_addr, "IN")
+    
+We are done! From here, you can run the graph as a FunctionBlock!
+
 ### Notes
 I admit, this is verbose, but here's the deal. Because it's made like this, with the graph structure I will soon implement and describe created, which is ran and read from the exact same way (they both use the same interface), you can call long strings of processes. And, an AI program can create graphs intelligently by calling functions like AddNode, AddEdge, RemoveEdge, RemoveNode. I will let you know more once I have implemented that, but that is how it works.
+
+### Roadmap
+ - [x] Primitive Blocks
+ - [x] Graphs
+ - [ ] Loops (Almost Done)
+ - [ ] Switches
+ - [ ] Custom Types
+ - [ ] Easy Accessors and Python Port
