@@ -1,0 +1,42 @@
+[INFO]graph.go:135: Running Graph:  {logical_nand 0}
+[INFO]graph.go:156: Putting all nodes in waiting.
+[INFO]graph.go:162: Defining Functions
+[INFO]graph.go:388: Done Defining Functions
+[INFO]graph.go:227: Loading Variables.
+[INFO]graph.go:182: Handling Inputs.
+[INFO]graph.go:183: Param:  {A {logical_and 0} 4 true} Val:  true
+[INFO]graph.go:192: Check:  true true
+[INFO]graph.go:233: {A {logical_and 0} 4 true} true true
+[INFO]graph.go:182: Handling Inputs.
+[INFO]graph.go:183: Param:  {B {logical_and 0} 4 true} Val:  false
+[INFO]graph.go:192: Check:  false true
+[INFO]graph.go:233: {B {logical_and 0} 4 true} false false
+[INFO]graph.go:392: Done Loading
+[INFO]graph.go:247: Checking Waiting.
+[INFO]graph.go:252: Running  logical_and
+[INFO]graph.go:299: Checking running
+[INFO]graph.go:304: Waiting for data input.
+[INFO]graph.go:311: Error Returned:  {true  { 0}}
+[INFO]graph.go:304: Waiting for data input.
+[INFO]graph.go:200: Handling Output:  {{logical_and 0} map[OUT:false]}
+[INFO]graph.go:350: Shifting Data
+[INFO]graph.go:352: HERE {OUT {logical_and 0} 4 false} [{IN {invert_bool 0} 4 true}]
+[INFO]graph.go:182: Handling Inputs.
+[INFO]graph.go:183: Param:  {IN {invert_bool 0} 4 true} Val:  false
+[INFO]graph.go:192: Check:  false true
+[INFO]graph.go:364: Shifting Data to Output
+[INFO]graph.go:379: Checking Done
+[INFO]graph.go:247: Checking Waiting.
+[INFO]graph.go:252: Running  invert_bool
+[INFO]graph.go:299: Checking running
+[INFO]graph.go:304: Waiting for data input.
+[INFO]graph.go:311: Error Returned:  {true  { 0}}
+[INFO]graph.go:304: Waiting for data input.
+[INFO]graph.go:200: Handling Output:  {{invert_bool 0} map[OUT:true]}
+[INFO]graph.go:350: Shifting Data
+[INFO]graph.go:352: HERE {OUT {invert_bool 0} 4 false} []
+[INFO]graph.go:364: Shifting Data to Output
+[INFO]graph.go:370: Graph Out:  true true
+[INFO]graph.go:379: Checking Done
+[INFO]graph.go:384: DONE!!!
+[INFO]graph.go:165: Stopping all.

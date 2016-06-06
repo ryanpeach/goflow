@@ -5,17 +5,16 @@ import (
     "time"
 )
 
-const (
-  STOPPING = "STOP" // Used to declare a stopping error
-)
-
 type Address struct {
-    name string
-    id InstanceID
+    Name string
+    ID   InstanceID
 }
-func NewAddress(id InstanceID, name string) Address {return Address{name: name, id: id}}
-func (a Address) GetName() string {return a.name}
-func (a Address) GetID() InstanceID {return a.id}
+type ParamAddress struct {
+    Name     string
+    Addr     Address
+    T        Type
+    is_input bool
+}
 
 // Used to declare an error in the flow pipeline
 type FlowError struct{
@@ -27,38 +26,11 @@ const (
     StopInfo = "StopError"
 )
 
-// Used to represent a parameter to a FunctionBlock
-// Everything is private, as this struct is immutable
-/*type Parameter struct {
-    addr      Address
-    paramName string
-    paramType Type
-}
-func (p Parameter) GetName() string {return p.paramName}
-func (p Parameter) GetType() Type {return p.paramType}
-func (p Parameter) GetBlock() Address {return p.addr}
-
-func NewParameter(name string, t Type, addr Address) Parameter {
-    return Parameter{addr: addr, paramType: t, paramName: name}
-}*/
-
 // Used to store the outputs of a FunctionBlock, while keeping it's reference.
 type DataOut struct {
     Addr Address
     Values  ParamValues
 }
-
-// KeyValues and DataStreams are the types of values and functions
-// Used universally inside FunctionBlocks
-type Type int
-type InstanceID int
-type ParamValues map[string]interface{}
-type ParamTypes map[string]Type
-//type ParamMap map[string]Parameter
-type DataStream func(inputs ParamValues,
-                     outputs chan DataOut,
-                     stop chan bool,
-                     err chan FlowError)
 
 // The primary interface of the flowchart. Allows running, has a name, and has parameters.
 type FunctionBlock interface{
@@ -103,11 +75,12 @@ func (m PrimitiveBlock) GetParams() (inputs ParamTypes, outputs ParamTypes) {
 func (m PrimitiveBlock) Run(inputs ParamValues,
                             outputs chan DataOut,
                             stop chan bool,
-                            err chan FlowError, id InstanceID) {
+                            err chan FlowError,
+                            id InstanceID) {
     // Check types to ensure inputs are the type defined in input parameters
-    addr := NewAddress(id, m.GetName())
+    ADDR := Address{m.GetName(), id}
     if !CheckTypes(inputs, m.inputs) {
-        err <- FlowError{Ok: false, Info: "Inputs are impropper types.", Addr: addr}
+        err <- FlowError{Ok: false, Info: "Inputs are impropper types.", Addr: ADDR}
         return
     }
     
@@ -125,11 +98,11 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
             case f_return := <-f_out:                                 // If an output is returned
                 if CheckTypes(f_return.Values, m.outputs) {           // Check the types with output parameters
                     err <- FlowError{Ok: true}                        // If good, return no error
-                    outputs <- DataOut{addr, f_return.Values}  // Along with the data
+                    outputs <- DataOut{ADDR, f_return.Values}  // Along with the data
                     return                                            // And stop the function
                 } else {
                     fmt.Println(f_return)
-                    err <- FlowError{Ok: false, Info: "Wrong output type.", Addr: addr}
+                    err <- FlowError{Ok: false, Info: "Wrong output type.", Addr: ADDR}
                     return
                 }
             case <-stop:                              // If commanded to stop externally
@@ -142,42 +115,6 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
                 }
         }
     }
-}
-
-// Types
-const (
-    String = iota
-    Int    = iota
-    Float  = iota
-    Num    = iota
-    Bool   = iota
-)
-
-// Checks if all keys in params are present in values
-// And that all values are of their appropriate types as labeled in in params
-func CheckTypes(values ParamValues, params ParamTypes) (ok bool) {
-    for name, typestr := range params {                             // Iterate through all parameters and get their names and types
-        val := values[name]                                      // Get the value of this param from values
-        if !CheckType(typestr, val) {  // Check the type based on an empty parameter of type typestr
-            fmt.Println(typestr, val)
-            return false                                            // If it's not valid, return false
-        }
-    }
-    return true                                                    // If none are valid, return true
-}
-
-func CheckType(t Type, val interface{}) bool {
-    switch val.(type) {
-        case string:
-            if t == String {return true}
-        case int:
-            if t == Int || t == Num {return true}
-        case float64:
-            if t == Float || t == Num {return true}
-        case bool:
-            if t == Bool {return true}
-    }
-    return false
 }
 
 // An easy way to initialize a block and get it's channels
@@ -198,16 +135,4 @@ func BlockRun(blk FunctionBlock, f_in ParamValues, id InstanceID) (f_out chan Da
 func Timeout(stop chan bool, sleeptime int) {
     time.Sleep(time.Duration(sleeptime))
     stop <- true
-}
-
-// Converts a Num type interface to float64 for numeric processing.
-func ToNum(n interface{}) float64 {
-    switch n.(type) {
-        case int:
-            return float64(n.(int))
-        case float64:
-            return n.(float64)
-        default:
-            panic("Wrong Type in toNum")
-    }
 }
