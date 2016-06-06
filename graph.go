@@ -40,7 +40,7 @@ func (g Graph) AddConstant(val interface{}, param_addr Address, param_name strin
             case !type_ok:
                 return errors.New(TYPE_ERROR)
             case len(linked)!=0:
-                return errors.New(LINK_EXISTS_ERROR)
+                return errors.New(ALREADY_EXISTS_ERROR)
             default:
                 g.constants[param] = val
                 return nil
@@ -70,7 +70,7 @@ func (g Graph) AddEdge(out_addr Address, out_param_name string,
     in_param, in_exists := g.FindParam(in_param_name, in_addr)   // Get the input parameters of in_blk
     linked := g.GetEdges(in_param)                                // Check if there is already an edge connecting input
     if in_exists && out_exists && len(linked)==0 {      // If both exist
-        if CheckCompatibility(in_param.T, out_param.T) && in_param.is_input && !out_param.is_input {
+        if CheckSame(in_param.T, out_param.T) && in_param.is_input && !out_param.is_input {
             g.edges[out_param] = append(g.edges[out_param], in_param)          // Append the new link to the edges under the out_param
             g.rev_edges[in_param] = out_param  // Add the reverse for reverse lookup
             ok = true
@@ -112,7 +112,7 @@ func (g Graph) FindParam(name string, addr Address) (param ParamAddress, exists 
 // self[self_param_name] -> in_addr[in_param_name]
 func (g Graph) LinkIn(self_param_name string, in_param_name string, in_addr Address) (ok bool) {
     param, exists := g.FindParam(in_param_name, in_addr)
-    if exists && CheckCompatibility(g.inputs[self_param_name], param.T) {
+    if exists && CheckSame(g.inputs[self_param_name], param.T) {
         g.infeed[self_param_name] = append(g.infeed[self_param_name], ParamAddress{in_param_name, in_addr, param.T, true})
         return true
     } else {
@@ -123,7 +123,7 @@ func (g Graph) LinkIn(self_param_name string, in_param_name string, in_addr Addr
 // out_addr[out_param_name] -> self[self_param_name]
 func (g Graph) LinkOut(out_addr Address, out_param_name string, self_param_name string) (ok bool) {
     param, exists := g.FindParam(out_param_name, out_addr)
-    if exists && CheckCompatibility(g.outputs[self_param_name], param.T) {
+    if exists && CheckSame(g.outputs[self_param_name], param.T) {
         g.outfeed[self_param_name] = append(g.outfeed[self_param_name], ParamAddress{out_param_name, out_addr, param.T, false})
         return true
     } else {
