@@ -5,10 +5,6 @@ import (
     "time"
 )
 
-const (
-  STOPPING = "STOP" // Used to declare a stopping error
-)
-
 type Address struct {
     Name string
     ID   InstanceID
@@ -32,17 +28,6 @@ type DataOut struct {
     Addr Address
     Values  ParamValues
 }
-
-// KeyValues and DataStreams are the types of values and functions
-// Used universally inside FunctionBlocks
-type Type int
-type InstanceID int
-type ParamValues map[string]interface{}
-type ParamTypes  map[string]Type
-type DataStream func(inputs ParamValues,
-                     outputs chan DataOut,
-                     stop chan bool,
-                     err chan FlowError)
 
 // The primary interface of the flowchart. Allows running, has a name, and has parameters.
 type FunctionBlock interface{
@@ -129,47 +114,6 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
     }
 }
 
-// Types
-const (
-    String = iota
-    Int    = iota
-    Float  = iota
-    Num    = iota
-    Bool   = iota
-)
-
-// Checks if all keys in params are present in values
-// And that all values are of their appropriate types as labeled in in params
-func CheckTypes(values ParamValues, params ParamTypes) (ok bool) {
-    for name, typestr := range params {                             // Iterate through all parameters and get their names and types
-        val := values[name]                                      // Get the value of this param from values
-        if !CheckType(typestr, val) {  // Check the type based on an empty parameter of type typestr
-            fmt.Println(typestr, val)
-            return false                                            // If it's not valid, return false
-        }
-    }
-    return true                                                    // If none are valid, return true
-}
-
-func CheckType(t Type, val interface{}) bool {
-    switch val.(type) {
-        case string:
-            if t == String {return true}
-        case int:
-            if t == Int || t == Num {return true}
-        case float64:
-            if t == Float || t == Num {return true}
-        case bool:
-            if t == Bool {return true}
-    }
-    fmt.Println("Wrong Type: ", val, t)
-    return false
-}
-
-func CheckCompatibility(t1, t2 Type) bool {
-    return t1 == t2
-}
-
 // An easy way to initialize a block and get it's channels
 func BlockRun(blk FunctionBlock, f_in ParamValues, id InstanceID) (f_out chan DataOut,
                                                                    f_stop chan bool,
@@ -188,16 +132,4 @@ func BlockRun(blk FunctionBlock, f_in ParamValues, id InstanceID) (f_out chan Da
 func Timeout(stop chan bool, sleeptime int) {
     time.Sleep(time.Duration(sleeptime))
     stop <- true
-}
-
-// Converts a Num type interface to float64 for numeric processing.
-func ToNum(n interface{}) float64 {
-    switch n.(type) {
-        case int:
-            return float64(n.(int))
-        case float64:
-            return n.(float64)
-        default:
-            panic("Wrong Type in toNum")
-    }
 }

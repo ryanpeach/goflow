@@ -2,35 +2,7 @@ package flow
 
 import (
     "errors"
-    "os"
-    "log"
-    "io/ioutil"
 )
-
-// Source: http://changelog.ca/log/2015/03/09/golang
-func CreateLogger(logMode, tag string) *log.Logger {
-    switch logMode {
-        case "none":
-            out := ioutil.Discard
-            return log.New(out, tag, log.Lshortfile)
-        case "screen":
-            out := os.Stdout
-            return log.New(out, tag, log.Lshortfile)
-        default:
-            out, err := os.Create(logMode)
-            if nil != err {
-                panic(err.Error())
-            } else {
-                return log.New(out, tag, log.Lshortfile)
-            }
-    }
-}
-
-type InstanceMap map[Address]FunctionBlock
-type EdgeMap map[ParamAddress][]ParamAddress
-type BlockMap map[string]FunctionBlock
-type ParamMap map[string]ParamAddress
-type ParamLstMap map[string][]ParamAddress
 
 type Graph struct {
     // Block Data
@@ -56,14 +28,6 @@ func NewGraph(name string, inputs, outputs ParamTypes) Graph {
     constants       := make(map[ParamAddress]interface{})
     return Graph{name, nodes, edges, rev_edges, infeed, outfeed, inputs, outputs, constants}
 }
-
-// Errors
-const (
-    NOT_INPUT_ERROR = "Parameter is not an input."
-    TYPE_ERROR = "Type Check did not confirm compatablitiy."
-    LINK_EXISTS_ERROR = "Link already exists for that input."
-    DNE_ERROR = "Parameter does not exist."
-)
 
 func (g Graph) AddConstant(val interface{}, param_addr Address, param_name string) error {
     param, p_exists := g.FindParam(param_name, param_addr)
