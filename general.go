@@ -5,11 +5,12 @@ import (
     "log"
     "io/ioutil"
     "fmt"
+    "reflect"
 )
 
 // KeyValues and DataStreams are the types of values and functions
 // Used universally inside FunctionBlocks
-type Type int
+type Type string
 type InstanceID int
 type ParamValues map[string]interface{}
 type ParamTypes  map[string]Type
@@ -28,18 +29,24 @@ const (
     STOPPING = "STOP" // Used to declare a stopping error
     NOT_INPUT_ERROR = "Parameter is not an input."
     TYPE_ERROR = "Type Check did not confirm compatablitiy."
-    LINK_EXISTS_ERROR = "Link already exists for that input."
     DNE_ERROR = "Parameter does not exist."
+    ALREADY_EXISTS_ERROR = "Item already exists."
 )
 
 // Types
 const (
-    String = iota
-    Int    = iota
-    Float  = iota
-    Num    = iota
-    Bool   = iota
+    Float  Type = "Float"
+    String Type = "String"
+    Int    Type = "Int"
+    Num    Type = "Num"
+    Bool   Type = "Bool"
 )
+var Types = map[Type][]reflect.Type {
+    String: {reflect.TypeOf("")},
+    Int:    {reflect.TypeOf(5)},
+    Float:  {reflect.TypeOf(5.1)},
+    Num:    {reflect.TypeOf(5), reflect.TypeOf(5.1)},
+    Bool:   {reflect.TypeOf(true)}}
 
 // Checks if all keys in params are present in values
 // And that all values are of their appropriate types as labeled in in params
@@ -55,21 +62,28 @@ func CheckTypes(values ParamValues, params ParamTypes) (ok bool) {
 }
 
 func CheckType(t Type, val interface{}) bool {
-    switch val.(type) {
-        case string:
-            if t == String {return true}
-        case int:
-            if t == Int || t == Num {return true}
-        case float64:
-            if t == Float || t == Num {return true}
-        case bool:
-            if t == Bool {return true}
+    T, exists := Types[t]
+    if exists {
+        for _, t := range T {
+            if t == reflect.TypeOf(val) {
+                return true
+            }
+        }
     }
-    fmt.Println("Wrong Type: ", val, t)
     return false
 }
 
-func CheckCompatibility(t1, t2 Type) bool {
+// Adds a new name or appends new type compatibilities to a preexisting type.
+func AddType(newName Type, compatible []reflect.Type) {
+    _, exists := Types[newName]
+    if !exists {
+        Types[newName] = compatible
+    } else {
+        Types[newName] = append(Types[newName], compatible...)
+    }
+}
+
+func CheckSame(t1, t2 Type) bool {
     return t1 == t2
 }
 
