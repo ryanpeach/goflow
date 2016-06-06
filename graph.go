@@ -2,6 +2,7 @@ package flow
 
 import (
     "fmt"
+    "errors"
 )
 
 type InstanceMap map[Address]FunctionBlock
@@ -15,18 +16,53 @@ type Graph struct {
     name        string
     nodes       InstanceMap
     edges       EdgeMap
+    rev_edges   map[ParamAddress]ParamAddress  // Used to lookup reverse edges
 
     // Block Inputs
     infeed      ParamLstMap    // Connects name of a param in inputs to a ParamAddress of some parameter in some node
     outfeed     ParamLstMap    // Connects name of a param in outputs to a ParamAddress of some parameter in some node
     inputs      ParamTypes
     outputs     ParamTypes
+    
+    // Other features
+    constants   map[ParamAddress]interface{}
 }
 
 func NewGraph(name string, inputs, outputs ParamTypes) Graph {
     nodes, edges    := make(InstanceMap), make(EdgeMap)
     infeed, outfeed := make(ParamLstMap), make(ParamLstMap)
-    return Graph{name, nodes, edges, infeed, outfeed, inputs, outputs}
+    rev_edges       := make(map[ParamAddress]ParamAddress)
+    constants       := make(map[ParamAddress]interface{})
+    return Graph{name, nodes, edges, rev_edges, infeed, outfeed, inputs, outputs, constants}
+}
+
+// Errors
+const (
+    NOT_INPUT_ERROR = "Parameter is not an input."
+    TYPE_ERROR = "Type Check did not confirm compatablitiy."
+    LINK_EXISTS_ERROR = "Link already exists for that input."
+    DNE_ERROR = "Parameter does not exist."
+)
+
+func (g Graph) AddConstant(val interface{}, param_addr Address, param_name string) error {
+    param, p_exists := g.FindParam(param_name, param_addr)
+    if p_exists {
+        type_ok := CheckType(param.T, val)
+        linked := g.GetEdges(param) // FIXME: Check if parameter is already connected to
+        switch {
+            case !param.is_input:
+                return errors.New(NOT_INPUT_ERROR)
+            case !type_ok:
+                return errors.New(TYPE_ERROR)
+            case len(linked)!=0:
+                return errors.New(LINK_EXISTS_ERROR)
+            default:
+                g.constants[param] = val
+                return nil
+        }
+    } else {
+        return errors.New(DNE_ERROR)
+    }
 }
 
 func (g Graph) AddNode(blk FunctionBlock, addr Address) (ok bool) {
@@ -47,14 +83,29 @@ func (g Graph) AddEdge(out_addr Address, out_param_name string,
     ok = false
     out_param, out_exists := g.FindParam(out_param_name, out_addr)  // Get the output parameters of out_blk
     in_param, in_exists := g.FindParam(in_param_name, in_addr)   // Get the input parameters of in_blk
-    if in_exists && out_exists {              // If both exist
+    linked := g.GetEdges(in_param)                                // Check if there is already an edge connecting input
+    if in_exists && out_exists && len(linked)==0 {      // If both exist
         if CheckCompatibility(in_param.T, out_param.T) && in_param.is_input && !out_param.is_input {
             g.edges[out_param] = append(g.edges[out_param], in_param)          // Append the new link to the edges under the out_param
+            g.rev_edges[in_param] = out_param  // Add the reverse for reverse lookup
             fmt.Println("Edge Added: ", g.edges[out_param])
             ok = true
         }
     }
     return
+}
+
+func (g Graph) GetEdges(param ParamAddress) []ParamAddress {
+    edges_out, exists := g.edges[param]
+    if !exists {
+        rev_out, rev_exists := g.rev_edges[param]
+        if !rev_exists {
+            return []ParamAddress{}
+        }
+        return []ParamAddress{rev_out}
+    } else {
+        return edges_out
+    }
 }
 
 func (g Graph) FindParam(name string, addr Address) (param ParamAddress, exists bool) {
@@ -216,6 +267,13 @@ func (g Graph) Run(inputs ParamValues,
         }
     }
 
+    // Loads constants into input data
+    loadconstants := func() {
+        for param, val := range g.constants {
+            handleInput(param, val)
+        }
+    }
+
     // Iterate through all blocks that are waiting
     // to see if all of their inputs have been set.
     // If so, it runs them...
@@ -368,6 +426,7 @@ func (g Graph) Run(inputs ParamValues,
     loadvars()                   // Begin by loading all inputs into the data maps and adding all blocks to waiting
     fmt.Println("Done Loading")
     for running {
+        loadconstants()              // Load all constants before running any block.
         checkWaiting()               // Then run waiting blocks that have all inputs availible
         checkRunning()               // Then, wait for some return on a running block
         shiftData()                  // Try to shift outputs to linked inputs
