@@ -10,7 +10,7 @@ const (
 )
 
 type Loop struct {
-    *Graph
+    g *Graph
     blk, cnd  Address
     registers map[ParamAddress]ParamAddress
 }
@@ -54,8 +54,29 @@ func NewLoop(name string, inputs, outputs ParamTypes, blk, stop_condition Functi
     
 }
 
+// Inhereted Fields
+func (l Loop) AddNode(blk FunctionBlock, addr Address) (ok *Error) {return l.g.AddNode(blk, addr)}
+func (l Loop) AddEdge(out_addr Address, out_param_name string,
+                       in_addr Address, in_param_name string) (ok bool) {return l.g.AddEdge(out_addr, out_param_name, in_addr, in_param_name)}
+func (l Loop) GetParams() (inputs ParamTypes, outputs ParamTypes) {return l.g.GetParams()}
+func (l Loop) GetName() string {return l.g.GetName()}
+func (l Loop) LinkIn(self_param_name string, in_param_name string, in_addr Address) (ok bool) {
+    return l.g.LinkIn(self_param_name, in_param_name, in_addr)
+}
+func (l Loop) LinkOut(out_addr Address, out_param_name string, self_param_name string) (ok bool) {
+    return l.g.LinkOut(out_addr, out_param_name, self_param_name)
+}
 
-// func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err chan FlowError, id InstanceID) {
+// Novel Methods
+func (l Loop) AddRegister(out_name, in_name string, addr Address, init interface{}) *Error {
+    return nil
+}
+
+func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err chan *FlowError, id InstanceID) {
+    return
+}
+
+// func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err chan *FlowError, id InstanceID) {
 //     Nodes    := map[string]FunctionBlock{l.blk.GetName(): l.blk, l.cnd.GetName(): l.cnd}
 //     ADDR     := Address{Name: l.name, ID: id}
 //     I        := ParamAddress{Name: INDEX_NAME, Addr: ADDR, T: Int, is_input: false}

@@ -5,12 +5,7 @@ import (
     "../blocks"
 )
 
-const (
-    CND = true
-    BLK = false
-)
-
-func Sum(id flow.InstanceID) (flow.Graph, flow.Address) {
+func Sum(id flow.InstanceID) (*flow.Loop, flow.Address) {
     // Create Summation Block
     ins  := flow.ParamTypes{"X": flow.NumArray, "Index": flow.Int, "Total": flow.Float}
     outs := flow.ParamTypes{"OUT": flow.Num}
@@ -47,10 +42,10 @@ func Sum(id flow.InstanceID) (flow.Graph, flow.Address) {
     outs = flow.ParamTypes{"OUT": flow.Bool}
     loop, _ := flow.NewLoop("summation_loop", ins, outs, summation_graph, cnd_graph)
     loop_addr := flow.Address{"summation_loop", id}
-    loop.LinkIn("X", "X", CND)
-    loop.LinkIn("X", "X", BLK)
-    loop.LinkIn(flow.INDEX_NAME, "Index", CND)
-    loop.AddRegister("OUT", "Total", BLK, 0)
+    loop.LinkIn("X", "X", cnd_addr)
+    loop.LinkIn("X", "X", summation_addr)
+    loop.LinkIn(flow.INDEX_NAME, "Index", cnd_addr)
+    loop.AddRegister("OUT", "Total", summation_addr, 0)
     
     return loop, loop_addr
 }
