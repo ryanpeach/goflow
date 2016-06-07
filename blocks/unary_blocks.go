@@ -80,3 +80,12 @@ func InvBool(id flow.InstanceID) (flow.FunctionBlock, flow.Address) {
     name := "invert_bool"
     return opUnary(id,flow.Bool,flow.Bool,name,opfunc)
 }
+
+// Arrays
+func Len(id flow.InstanceID) (flow.FunctionBlock, flow.Address) {
+    opfunc := func(in flow.ParamValues, out flow.ParamValues) {
+        out["OUT"] = len(in["IN"].([]float64))
+    }
+    name := "array_len"
+    return opUnary(id,flow.NumArray,flow.Int,name,opfunc)
+}

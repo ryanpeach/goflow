@@ -12,7 +12,7 @@ func TestPlusFloat(t *testing.T) {
     blk, _ := PlusFloat(0)
     a, b := 5.1, 2.2
     c := float64(a + b)
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -23,7 +23,7 @@ func TestSubFloat(t *testing.T) {
     blk, _ := SubFloat(0)
     a, b := 5.1, 2.2
     c := float64(a - b)
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -34,7 +34,7 @@ func TestMultFloat(t *testing.T) {
     blk, _ := MultFloat(0)
     a, b := 5.1, 2.2
     c := float64(a * b)
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -45,7 +45,7 @@ func TestDivFloat(t *testing.T) {
     blk, _ := DivFloat(0)
     a, b := 5.1, 2.2
     c := float64(a / b)
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -59,7 +59,7 @@ func TestPlusInt(t *testing.T) {
     blk, _ := PlusInt(0)
     a, b := 5, 2
     c := int(a + b)
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -70,7 +70,7 @@ func TestSubInt(t *testing.T) {
     blk, _ := SubInt(0)
     a, b := 5, 2
     c := int(a - b)
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -81,7 +81,7 @@ func TestMultInt(t *testing.T) {
     blk, _ := MultInt(0)
     a, b := 5, 2
     c := int(a * b)
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -92,7 +92,7 @@ func TestDivInt(t *testing.T) {
     blk, _ := DivInt(0)
     a, b := 5, 2
     c := int(a / b)
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -103,7 +103,7 @@ func TestMod(t *testing.T) {
     blk, _ := Mod(0)
     a, b := 5, 2
     c := int(a % b)
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -116,7 +116,7 @@ func TestAnd(t *testing.T) {
     blk, _ := And(0)
     a, b := true, false
     c := a && b
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -127,7 +127,7 @@ func TestOr(t *testing.T) {
     blk, _ := Or(0)
     a, b := true, false
     c := a || b
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -138,7 +138,7 @@ func TestXor(t *testing.T) {
     blk, _ := Xor(0)
     a, b := true, false
     c := a != b
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -151,7 +151,7 @@ func TestGreater(t *testing.T) {
     blk, _ := Greater(0)
     a, b := 5, 2
     c := 5 > 2
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -162,7 +162,7 @@ func TestLesser(t *testing.T) {
     blk, _ := Lesser(0)
     a, b := 5, 2
     c := 5 < 2
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -174,7 +174,21 @@ func TestEquals(t *testing.T) {
     blk, _ := Greater(0)
     a, b := 5, 2
     c := 5 > 2
-    err := TestBinary(blk, a, b, c, name)
+    err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
+    if !err.Ok {
+        t.Error(err.Info)
+    }
+}
+
+// Arrays
+func TestIndex(t *testing.T) {
+    name := "index"
+    fmt.Println("Testing ", name, "...")
+    blk, _ := Index(0)
+    a := []float64{1,2,3,4}
+    b := 2
+    c := 3.0
+    err := TestBinary(blk, a, b, c, "X", "Index", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }

@@ -85,3 +85,16 @@ func TestInvBool(t *testing.T) {
         t.Error(err.Info)
     }
 }
+
+// Arrays
+func TestLen(t *testing.T) {
+    name := "array_len"
+    fmt.Println("Testing ", name, "...")
+    blk, _ := Len(0)
+    a := []float64{1,2,3,4}
+    c := 4
+    err := TestUnary(blk, a, c, name)
+    if !err.Ok {
+        t.Error(err.Info)
+    }
+}

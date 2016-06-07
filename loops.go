@@ -1,13 +1,13 @@
 package flow
 
-const (
-    New = "New"
-    Done = "Done"
+import (
+    "errors"
 )
 
-func NewLoop(name string, blk FunctionBlock, stop_condition FunctionBlock) Graph {
-    NewGraph(, inputs, outputs ParamTypes)
-}
+const (
+    INDEX_NAME = "I"
+    DONE_NAME = "DONE"
+)
 
 type Loop struct {
     name string
@@ -18,35 +18,96 @@ type Loop struct {
     registers map[ParamAddress]ParamAddress
     in_feed map[string][]ParamAddress
     out_feed map[string]ParamAddress
+    lock bool
 }
+func NewLoop(name string, inputs, outputs ParamTypes, blk, stop_condition FunctionBlock) (Loop, error) {
+    // Create empty regs
+    nilLoop := Loop{}
+    regs := make(map[ParamAddress]ParamAddress)
+    in_feed, out_feed := make(map[string][]ParamAddress), make(map[string]ParamAddress)
+    
+    // Check that stop_condition has one bool output.
+    cnd_in, cnd_out := stop_condition.GetParams()
+    bool_found := false
+    for name, t := range cnd_out {
+        if t == Bool {
+            bool_found = true
+            break
+        }
+    }
+    if !bool_found {
+        return nilLoop, errors.New("Stop Condition has no boolean output.")
+    }
+    
+    // Check all other params for valid lengths
+    blk_in, blk_out := blk.GetParams()
+    switch {
+        case !(len(inputs)>0):
+            return nilLoop, errors.New("Must have at least one input.")
+        case !(len(outputs)>0):
+            return nilLoop, errors.New("Must have at least one output.")
+        case !(len(blk_in)>0):
+            return nilLoop, errors.New("Block must have at least one input.")
+        case !(len(blk_out)>0):
+            return nilLoop, errors.New("Block must have at least one output.")
+        case !(len(cnd_in)>0):
+            return nilLoop, errors.New("Stop condition have at least one input.")
+    }
+    
+    return Loop{name, blk, stop_condition, inputs, outputs, regs, in_feed, out_feed, false}, nil
+}
+
+
 func (l Loop) GetParams() (inputs ParamTypes, outputs ParamTypes) {return l.inputs, l.outputs}
 func (l Loop) GetName() string {return l.blk.GetName() + "Loop"}
-
-const (
-    I_NAME = "I"
-    DONE_NAME = "DONE"
-)
+func (l Loop) LinkIn() error {
+    
+}
+func (l Loop) LinkOut() error {
+    
+}
+func (l Loop) AddRegister() error {
+    
+}
+func (l Loop) Finalize() error {
+    
+}
 
 func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err chan FlowError, id InstanceID) {
     Nodes    := map[string]FunctionBlock{l.blk.GetName(): l.blk, l.cnd.GetName(): l.cnd}
     ADDR     := Address{Name: l.name, ID: id}
-    I        := ParamAddress{Name: I_NAME, Addr: ADDR, T: Int, is_input = false}
-    Done     := ParamAddress{Name: DONE_NAME, Addr: ADDR, T: Bool, is_input = true}
-    data_out := map[ParamAddress]interface{}
-    data_in  := map[ParamAddress]interface{}
+    I        := ParamAddress{Name: INDEX_NAME, Addr: ADDR, T: Int, is_input: false}
+    DONE     := ParamAddress{Name: DONE_NAME, Addr: ADDR, T: Bool, is_input: true}
+    data_out := make(map[ParamAddress]interface{})
+    data_in  := make(map[ParamAddress]interface{})
     done, i  := false, 0
-    running := true
+    running  := true
+    blk_out, blk_stop, f_err := make(chan DataOut), make(chan bool), make(chan FlowError)
+    cnd_out, cnd_stop        := make(chan DataOut), make(chan bool)
+    
+    stopAll := func() {
+        blk_stop <- true
+        cnd_stop <- true
+        running = false
+    }
+    
+    passError := func(e FlowError) {
+        err <- e
+        if !e.Ok {
+            stopAll()
+        }
+    }
     
     // Reads the inputs into the data_in map
     loadvars := func() {
-        for name, param_lst := range in_feed {
-            for param := range param_lst {
+        for name, param_lst := range l.in_feed {
+            for _, param := range param_lst {
                 val, exists := inputs[name]
                 switch {
                     case !exists:
-                        pushError(DNE_ERROR)
-                    case !CheckType(param, val):
-                        pushError(TYPE_ERROR)
+                        passError(FlowError{false, DNE_ERROR, ADDR})
+                    case !CheckType(param.T, val):
+                        passError(FlowError{false, TYPE_ERROR, ADDR})
                     default:
                         data_in[param] = val
                 }
@@ -61,20 +122,7 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
     
     // Puts the Done value from data_in in parameter done
     updateDone := func() {
-        done = data_in[DONE]
-    }
-    
-    passError := func(e FlowError) {
-        err <- e
-        if !e.Ok {
-            stopAll()
-        }
-    }
-    
-    stopAll := func() {
-        blk_stop <- true
-        cnd_stop <- true
-        running = false
+        done = data_in[DONE].(bool)
     }
     
     // Used to listen for outputs and respond either by passing errors or storing them in data_out
@@ -85,8 +133,8 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
                 _, out_params := blk.GetParams() 
                 t, t_exists := out_params[name]
                 if t_exists {
-                    param = ParamAddress{Name: name, Addr: d.Addr, T: t, is_input: false}
-                    if CheckType(param, val) {
+                    param := ParamAddress{Name: name, Addr: d.Addr, T: t, is_input: false}
+                    if CheckType(param.T, val) {
                         data_out[param] = val
                     } else {
                         passError(FlowError{Ok: false, Info: TYPE_ERROR, Addr: ADDR})
@@ -107,7 +155,7 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
                 case temp_err := <-f_err:
                     passError(temp_err)
                 case <-stop:
-                    passError(FlowError{Ok: false, Info: STOPPING, Addr: addr}
+                    passError(FlowError{Ok: false, Info: STOPPING, Addr: ADDR})
             }
         }
     }
@@ -116,7 +164,7 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
     shiftLoopValues := func() {
         for param, val := range(data_out) {
             new_param, exists := l.registers[param]
-            if exists && CheckType(new_param, val) {
+            if exists && CheckType(new_param.T, val) {
                 data_in[new_param] = val
                 delete(data_out, param)
             }
@@ -127,25 +175,27 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
         cnd_in, _ := l.cnd.GetParams()
         blk_in, _ := l.blk.GetParams()
         
-        get := func(param_lst) {
+        get := func(params ParamTypes) ParamValues {
             out_val := make(ParamValues)
-            for name, t := range cnd_in {
-                param := ParamAddress{Name: name, Addr: Address{Name: cnd.GetName(), ID: 0}, is_input: true}
+            for name, _ := range params {
+                param := ParamAddress{Name: name, Addr: Address{Name: l.cnd.GetName(), ID: 0}, is_input: true}
                 val, exists := data_in[param]
                 if exists {
                     out_val[name] = val
                 }
             }
+            return out_val
         }
         
         return get(cnd_in), get(blk_in)
     }
+    
     getOut := func() DataOut {
         out := make(ParamValues)
         for name, param := range l.out_feed {
             val, exists := data_out[param]
             _, is_output := l.outputs[name]
-            chk := CheckType(val, param)
+            chk := CheckType(param.T, val)
             switch {
                 case !exists || !is_output || !chk:
                     return DataOut{Addr: ADDR, Values: make(ParamValues)}
@@ -156,14 +206,10 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
         return DataOut{Addr: ADDR, Values: out}
     }
     
-    // Initialize variables
-    blk_out, blk_stop, f_err := make(chan DataOut), make(chan bool), make(chan FlowError)
-    cnd_out, cnd_stop        := make(chan DataOut), make(chan bool)
-    
     // Loop until done or error
     loadvars()
     blk_in, cnd_in := getIns()
-    for !done and running {
+    for !done && running {
         go l.blk.Run(blk_in, blk_out, blk_stop, f_err, 0)
         go l.cnd.Run(cnd_in, cnd_out, cnd_stop, f_err, 0)
         handleOutput(blk_out, cnd_out, blk_stop, cnd_stop, f_err)
@@ -178,52 +224,4 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
     out := getOut()
     outputs <- out
     return
-}
-
-func NewLoop(blk FunctionBlock, stop_condition FunctionBlock) (out FunctionBlock, err FlowError) {
-    b_in, b_out := blk.GetParams()
-    
-    // Check that b_out has a Done output
-    done_type, done_exists := b_out[Done]
-    if (!done_exists || done_type != Bool) {
-        err = FlowError{Ok: false, Info: "Must have a Done output of type Bool."}
-        out = nil
-        return
-    }
-    
-    // Check that outputs has a NewX for every X in inputs
-    out_loops := make(map[string]bool)
-    for name, t_in := range b_in {
-        t_out, exists := b_out[New + name]
-        if (!exists || t_out != t_in) {
-            err = FlowError{Ok: false, Info: name + " must have an output named " + New + name + " of same type."}
-            out = nil
-            return
-        }
-        out_loops[name] = true
-    }
-    
-    // Create Loop inputs and outputs without looping outputs
-    inputs, outputs := copyTypes(b_in), make(ParamTypes)
-    for name, t := range b_out {
-        if !out_loops[name] && name != Done {
-            outputs[name] = t
-        }
-    }
-    
-    // Create loop block and return
-    out = Loop{blk: blk, inputs: inputs, outputs: outputs}
-    err = FlowError{Ok: true}
-    return
-}
-
-func copyTypes(p ParamTypes) ParamTypes {
-    out := make(ParamTypes)
-    for name, t := range p {out[name] = t}
-    return out
-}
-func copyValues(p ParamValues) ParamValues {
-    out := make(ParamValues)
-    for name, t := range p {out[name] = t}
-    return out
 }

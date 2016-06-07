@@ -24,29 +24,30 @@ type BlockMap map[string]FunctionBlock
 type ParamMap map[string]ParamAddress
 type ParamLstMap map[string][]ParamAddress
 
-// Errors
 const (
+// Errors
     STOPPING = "STOP" // Used to declare a stopping error
     NOT_INPUT_ERROR = "Parameter is not an input."
     TYPE_ERROR = "Type Check did not confirm compatablitiy."
     DNE_ERROR = "Parameter does not exist."
     ALREADY_EXISTS_ERROR = "Item already exists."
-)
 
 // Types
-const (
-    Float  Type = "Float"
-    String Type = "String"
-    Int    Type = "Int"
-    Num    Type = "Num"
-    Bool   Type = "Bool"
+    Float    Type = "Float"
+    String   Type = "String"
+    Int      Type = "Int"
+    Num      Type = "Num"
+    Bool     Type = "Bool"
+    NumArray Type = "NumArray"
 )
 var Types = map[Type][]reflect.Type {
     String: {reflect.TypeOf("")},
     Int:    {reflect.TypeOf(5)},
     Float:  {reflect.TypeOf(5.1)},
     Num:    {reflect.TypeOf(5), reflect.TypeOf(5.1)},
-    Bool:   {reflect.TypeOf(true)}}
+    Bool:   {reflect.TypeOf(true)},
+    NumArray: {reflect.TypeOf([]float64{})}}
+
 
 // Checks if all keys in params are present in values
 // And that all values are of their appropriate types as labeled in in params

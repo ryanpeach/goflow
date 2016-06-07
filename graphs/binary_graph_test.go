@@ -13,7 +13,7 @@ func TestNand(t *testing.T) {
     blk, _ := Nand(0)
     a, b := true, false
     c := !(a && b)
-    err := blocks.TestBinary(blk, a, b, c, name)
+    err := blocks.TestBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -25,7 +25,7 @@ func BenchmarkNand(b *testing.B) {
     A, B := true, false
     C := !(A && B)
     for i := 0; i < b.N; i++ {
-        blocks.TestBinary(blk, A, B, C, name)
+        blocks.TestBinary(blk, A, B, C, "A", "B", "OUT", name)
     }
 }
 func BenchmarkNand2(b *testing.B) {
@@ -41,7 +41,7 @@ func TestNor(t *testing.T) {
     blk := Nor(0)
     a, b := true, false
     c := !(a || b)
-    err := testBinary(blk, a, b, c, name)
+    err := testBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -55,7 +55,7 @@ func TestGreaterEquals(t *testing.T) {
     blk := Greater(0)
     a, b := 5, 2
     c := 5 >= 2
-    err := testBinary(blk, a, b, c, name)
+    err := testBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -66,7 +66,7 @@ func TestLesserEquals(t *testing.T) {
     blk := Lesser(0)
     a, b := 5, 2
     c := 5 <= 2
-    err := testBinary(blk, a, b, c, name)
+    err := testBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }
@@ -78,7 +78,7 @@ func TestNotEquals(t *testing.T) {
     blk := NotEquals(0)
     a, b := 5, 2
     c := 5 != 2
-    err := testBinary(blk, a, b, c, name)
+    err := testBinary(blk, a, b, c, "A", "B", "OUT", name)
     if !err.Ok {
         t.Error(err.Info)
     }

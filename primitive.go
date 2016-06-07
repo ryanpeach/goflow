@@ -22,9 +22,6 @@ type FlowError struct{
     Info string
     Addr Address
 }
-const (
-    StopInfo = "StopError"
-)
 
 // Used to store the outputs of a FunctionBlock, while keeping it's reference.
 type DataOut struct {
