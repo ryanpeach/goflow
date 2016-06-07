@@ -1,9 +1,5 @@
 package flow
 
-import (
-    "errors"
-)
-
 const (
     INDEX_NAME = "I"
     DONE_NAME = "DONE"
@@ -15,10 +11,9 @@ type Loop struct {
     registers map[ParamAddress]ParamAddress
 }
 
-func NewLoop(name string, inputs, outputs ParamTypes, blk, stop_condition FunctionBlock) (*Loop, error) {
+func NewLoop(name string, inputs, outputs ParamTypes, blk, stop_condition FunctionBlock) (*Loop, *Error) {
     
     // Check that stop_condition has one bool output.
-    nilLoop := &Loop{}
     _, cnd_out := stop_condition.GetParams()
     bool_found := false
     for _, t := range cnd_out {
@@ -28,8 +23,12 @@ func NewLoop(name string, inputs, outputs ParamTypes, blk, stop_condition Functi
         }
     }
     if !bool_found {
-        return nilLoop, errors.New("Stop Condition has no boolean output.")
+        return nil, &Error{TYPE_ERROR, "Stop Condition has no boolean output."}
     }
+    
+    // Add Done and Index as outputs and inputs
+    inputs[INDEX_NAME] = Int
+    outputs[DONE_NAME] = Bool
     
     // Initialize variables
     regs := make(map[ParamAddress]ParamAddress)
@@ -44,11 +43,11 @@ func NewLoop(name string, inputs, outputs ParamTypes, blk, stop_condition Functi
     // Output handling errors
     switch {
         case err1 != nil:
-            return nilLoop, err1
+            return nil, err1
         case err2 != nil:
-            return nilLoop, &Error{err2.Class, "Blk could not be added to graph."}
+            return nil, &Error{err2.Class, "Blk could not be added to graph."}
         case err3 != nil:
-            return nilLoop, &Error{err3.Class, "Stop Condition could not be added to graph."}
+            return nil, &Error{err3.Class, "Stop Condition could not be added to graph."}
     }
     return &outLoop, nil
     
@@ -58,13 +57,27 @@ func NewLoop(name string, inputs, outputs ParamTypes, blk, stop_condition Functi
 func (l Loop) AddNode(blk FunctionBlock, addr Address) (ok *Error) {return l.g.AddNode(blk, addr)}
 func (l Loop) AddEdge(out_addr Address, out_param_name string,
                        in_addr Address, in_param_name string) (ok bool) {return l.g.AddEdge(out_addr, out_param_name, in_addr, in_param_name)}
-func (l Loop) GetParams() (inputs ParamTypes, outputs ParamTypes) {return l.g.GetParams()}
 func (l Loop) GetName() string {return l.g.GetName()}
 func (l Loop) LinkIn(self_param_name string, in_param_name string, in_addr Address) (ok bool) {
     return l.g.LinkIn(self_param_name, in_param_name, in_addr)
 }
 func (l Loop) LinkOut(out_addr Address, out_param_name string, self_param_name string) (ok bool) {
     return l.g.LinkOut(out_addr, out_param_name, self_param_name)
+}
+
+// Gets parameters, but ignores Index and Done
+func (l Loop) GetParams() (inputs ParamTypes, outputs ParamTypes) {
+    for name, t := range l.g.inputs {
+        if name != INDEX_NAME {
+            inputs[name] = t
+        }
+    }
+    for name, t := range l.g.outputs {
+        if name != DONE_NAME {
+            outputs[name] = t
+        }
+    }
+    return inputs, outputs
 }
 
 // Novel Methods
