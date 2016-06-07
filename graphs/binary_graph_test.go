@@ -14,7 +14,7 @@ func TestNand(t *testing.T) {
     a, b := true, false
     c := !(a && b)
     err := blocks.TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }

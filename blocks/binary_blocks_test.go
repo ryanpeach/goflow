@@ -13,7 +13,7 @@ func TestPlusFloat(t *testing.T) {
     a, b := 5.1, 2.2
     c := float64(a + b)
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -24,7 +24,7 @@ func TestSubFloat(t *testing.T) {
     a, b := 5.1, 2.2
     c := float64(a - b)
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -35,7 +35,7 @@ func TestMultFloat(t *testing.T) {
     a, b := 5.1, 2.2
     c := float64(a * b)
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -46,7 +46,7 @@ func TestDivFloat(t *testing.T) {
     a, b := 5.1, 2.2
     c := float64(a / b)
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -60,7 +60,7 @@ func TestPlusInt(t *testing.T) {
     a, b := 5, 2
     c := int(a + b)
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -71,7 +71,7 @@ func TestSubInt(t *testing.T) {
     a, b := 5, 2
     c := int(a - b)
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -82,7 +82,7 @@ func TestMultInt(t *testing.T) {
     a, b := 5, 2
     c := int(a * b)
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -93,7 +93,7 @@ func TestDivInt(t *testing.T) {
     a, b := 5, 2
     c := int(a / b)
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -104,7 +104,7 @@ func TestMod(t *testing.T) {
     a, b := 5, 2
     c := int(a % b)
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -117,7 +117,7 @@ func TestAnd(t *testing.T) {
     a, b := true, false
     c := a && b
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -128,7 +128,7 @@ func TestOr(t *testing.T) {
     a, b := true, false
     c := a || b
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -139,7 +139,7 @@ func TestXor(t *testing.T) {
     a, b := true, false
     c := a != b
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -152,7 +152,7 @@ func TestGreater(t *testing.T) {
     a, b := 5, 2
     c := 5 > 2
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -163,7 +163,7 @@ func TestLesser(t *testing.T) {
     a, b := 5, 2
     c := 5 < 2
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -175,7 +175,7 @@ func TestEquals(t *testing.T) {
     a, b := 5, 2
     c := 5 > 2
     err := TestBinary(blk, a, b, c, "A", "B", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -189,7 +189,7 @@ func TestIndex(t *testing.T) {
     b := 2
     c := 3.0
     err := TestBinary(blk, a, b, c, "X", "Index", "OUT", name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }

@@ -5,11 +5,11 @@ import (
     "../blocks"
 )
 
-func Nand(id flow.InstanceID) (flow.Graph, flow.Address) {
+func Nand(id flow.InstanceID) (*flow.Graph, flow.Address) {
     // Create Graph
     ins  := flow.ParamTypes{"A": flow.Bool, "B": flow.Bool}
     outs := flow.ParamTypes{"OUT": flow.Bool}
-    graph := flow.NewGraph("logical_nand", ins, outs)
+    graph, _ := flow.NewGraph("logical_nand", ins, outs)
     addr := flow.Address{"logical_nand", id}
     
     // Create Blocks

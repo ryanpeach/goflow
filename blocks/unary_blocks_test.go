@@ -13,7 +13,7 @@ func TestFloattoInt(t *testing.T) {
     a := 5.1
     c := int(a)
     err := TestUnary(blk, a, c, name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -24,7 +24,7 @@ func TestInttoFloat(t *testing.T) {
     a := 5
     c := float64(a)
     err := TestUnary(blk, a, c, name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -37,7 +37,7 @@ func TestInc(t *testing.T) {
     a := 5
     c := a + 1
     err := TestUnary(blk, a, c, name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -48,7 +48,7 @@ func TestDec(t *testing.T) {
     a := 5
     c := a - 1
     err := TestUnary(blk, a, c, name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -59,7 +59,7 @@ func TestInvInt(t *testing.T) {
     a := 5
     c := -a
     err := TestUnary(blk, a, c, name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -70,7 +70,7 @@ func TestInvFloat(t *testing.T) {
     a := 5.1
     c := -a
     err := TestUnary(blk, a, c, name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -81,7 +81,7 @@ func TestInvBool(t *testing.T) {
     a := true
     c := !a
     err := TestUnary(blk, a, c, name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }
@@ -94,7 +94,7 @@ func TestLen(t *testing.T) {
     a := []float64{1,2,3,4}
     c := 4
     err := TestUnary(blk, a, c, name)
-    if !err.Ok {
+    if err != nil {
         t.Error(err.Info)
     }
 }

@@ -1,9 +1,5 @@
 package flow
 
-import (
-    "errors"
-)
-
 type Graph struct {
     // Block Data
     name        string
@@ -21,42 +17,51 @@ type Graph struct {
     constants   map[ParamAddress]interface{}
 }
 
-func NewGraph(name string, inputs, outputs ParamTypes) Graph {
+func NewGraph(name string, inputs, outputs ParamTypes) (*Graph, *Error) {
+    // Handle Errors
+    nilGraph := &Graph{}
+    switch {
+        case len(inputs) <= 0:
+            return nilGraph, nil
+        case len(outputs) <= 0:
+            return nilGraph, nil
+    }
+    
     nodes, edges    := make(InstanceMap), make(EdgeMap)
     infeed, outfeed := make(ParamLstMap), make(ParamLstMap)
     rev_edges       := make(map[ParamAddress]ParamAddress)
     constants       := make(map[ParamAddress]interface{})
-    return Graph{name, nodes, edges, rev_edges, infeed, outfeed, inputs, outputs, constants}
+    return &Graph{name, nodes, edges, rev_edges, infeed, outfeed, inputs, outputs, constants}, nil
 }
 
-func (g Graph) AddConstant(val interface{}, param_addr Address, param_name string) error {
+func (g Graph) AddConstant(val interface{}, param_addr Address, param_name string) *Error {
     param, p_exists := g.FindParam(param_name, param_addr)
     if p_exists {
         type_ok := CheckType(param.T, val)
         linked := g.GetEdges(param) // FIXME: Check if parameter is already connected to
         switch {
             case !param.is_input:
-                return errors.New(NOT_INPUT_ERROR)
+                return &Error{NOT_INPUT_ERROR, "Parameter must be an input."}
             case !type_ok:
-                return errors.New(TYPE_ERROR)
+                return &Error{TYPE_ERROR, "Parameter is not the same type as val."}
             case len(linked)!=0:
-                return errors.New(ALREADY_EXISTS_ERROR)
+                return &Error{ALREADY_EXISTS_ERROR, "Parameter is already linked."}
             default:
                 g.constants[param] = val
                 return nil
         }
     } else {
-        return errors.New(DNE_ERROR)
+        return &Error{DNE_ERROR, "Parameter does not exist."}
     }
 }
 
-func (g Graph) AddNode(blk FunctionBlock, addr Address) (ok bool) {
+func (g Graph) AddNode(blk FunctionBlock, addr Address) (ok *Error) {
     _, exists := g.nodes[addr]
     if !exists {
         g.nodes[addr] = blk
-        ok = true
+        ok = nil
     } else {
-        ok = false
+        ok = &Error{DNE_ERROR, "addr is not a node in blk."}
     }
     return
 }
@@ -142,7 +147,7 @@ func (g Graph) GetName() string {return g.name}
 func (g Graph) Run(inputs ParamValues,
                    outputs chan DataOut,
                    stop chan bool,
-                   err chan FlowError, id InstanceID) {
+                   err chan *FlowError, id InstanceID) {
     logger := CreateLogger("none", "[INFO]")
     
     ADDR := Address{g.GetName(), id}
@@ -150,7 +155,7 @@ func (g Graph) Run(inputs ParamValues,
     
     // Check types to ensure inputs are the type defined in input parameters
     if !CheckTypes(inputs, g.inputs) {
-      err <- FlowError{Ok: false, Info: "Inputs are impropper types.", Addr: ADDR}
+      err <- NewFlowError(TYPE_ERROR, "Inputs are impropper types.", ADDR)
       return
     }
 
@@ -162,7 +167,7 @@ func (g Graph) Run(inputs ParamValues,
     all_data_in   := make(map[ParamAddress]interface{})  // A map of all data waiting at the inputs of each block
     all_data_out  := make(map[ParamAddress]interface{})  // A map of all data waiting at the outputs of each block
     all_stops     := make(map[Address](chan bool))  // A map of all stop channels passed to each running block
-    flow_errs     := make(chan FlowError)           // A channel passed to each running block to send back errors
+    flow_errs     := make(chan *FlowError)           // A channel passed to each running block to send back errors
     data_flow     := make(chan DataOut)             // A channel passed to each running block to send back return data
     graph_out     := make(ParamValues)              // The output for the entire graph
 
@@ -185,9 +190,9 @@ func (g Graph) Run(inputs ParamValues,
     }
     
     // Pushes an error up the pipeline and stops all blocks
-    pushError := func(info string) {
+    pushError := func(class int, info string) {
         logger.Println("Pushing Error: ", info)
-        flow_errs <- FlowError{Ok: false, Info: info, Addr: ADDR}
+        flow_errs <- NewFlowError(class, info, ADDR)
         stopAll()
     }
     
@@ -201,7 +206,7 @@ func (g Graph) Run(inputs ParamValues,
             all_data_in[param] = val                                   // Add addr,val to the preexisting map
         } else {                                                       // If type is not ok or param is not in all_data_in
             ok = false                                                 // Return false
-            pushError("Input is not the right type.")
+            pushError(TYPE_ERROR, "Input is not the right type.")
         }
         logger.Println("Check: ", all_data_in[param], all_data_in[param] == val)
         return
@@ -223,7 +228,7 @@ func (g Graph) Run(inputs ParamValues,
                 if val_exists {                  // Only set val if it exists
                     all_data_out[param] = val
                 } else {
-                    pushError("All Data Output not present.")
+                    pushError(NOT_READY_ERROR, "All Data Output not present.")
                     return
                 }
             }
@@ -231,7 +236,7 @@ func (g Graph) Run(inputs ParamValues,
             all_suspended[addr] = blk           // Add block to suspended
             delete(all_stops, addr)             // Delete channels
         } else {                                // If types are incompatible, push an error, graph is broken
-            pushError("Output parameter not the right type.")
+            pushError(TYPE_ERROR, "Output parameter not the right type.")
         }
     }
     
@@ -246,7 +251,7 @@ func (g Graph) Run(inputs ParamValues,
                     handleInput(node_param, val)     // Add the value to all_data_in
                     logger.Println(node_param, val, all_data_in[node_param])
                 } else {                             // Otherwise, error
-                    pushError("Input parameter does not exist.")
+                    pushError(DNE_ERROR, "Input parameter does not exist.")
                     return
                 }
             }
@@ -297,7 +302,7 @@ func (g Graph) Run(inputs ParamValues,
                 if val_exists {
                     if !CheckType(t, in_val) {
                         logger.Println(param_name, t, in_val, val_exists)
-                        pushError("Input parameter is not the right type.")
+                        pushError(TYPE_ERROR, "Input parameter is not the right type.")
                         return false
                     } else {
                         f_in[param_name] = in_val
@@ -330,10 +335,8 @@ func (g Graph) Run(inputs ParamValues,
                     done = true
                 case e := <- flow_errs:         // If it is an error
                     logger.Println("Error Returned: ", e)
-                    if !e.Ok {                  // Check to see if it's dangerous
-                        pushError(e.Info)       // If it is dangerous, push the error
-                        done = true
-                    }
+                    pushError(e.Class, e.Info)  // If it is dangerous, push the error
+                    done = true
                 case <-stop:                    // If a stop is received
                     stopAll()                   // Stop all processes
                     done = true

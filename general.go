@@ -17,22 +17,61 @@ type ParamTypes  map[string]Type
 type DataStream func(inputs ParamValues,
                      outputs chan DataOut,
                      stop chan bool,
-                     err chan FlowError)
+                     err chan *FlowError)
 type InstanceMap map[Address]FunctionBlock
 type EdgeMap map[ParamAddress][]ParamAddress
 type BlockMap map[string]FunctionBlock
 type ParamMap map[string]ParamAddress
 type ParamLstMap map[string][]ParamAddress
 
+type Address struct {
+    Name string
+    ID   InstanceID
+}
+
+type ParamAddress struct {
+    Name     string
+    Addr     Address
+    T        Type
+    is_input bool
+}
+
+// Used to store the outputs of a FunctionBlock, while keeping it's reference.
+type DataOut struct {
+    Addr Address
+    Values  ParamValues
+}
+
 const (
 // Errors
-    STOPPING = "STOP" // Used to declare a stopping error
-    NOT_INPUT_ERROR = "Parameter is not an input."
-    TYPE_ERROR = "Type Check did not confirm compatablitiy."
-    DNE_ERROR = "Parameter does not exist."
-    ALREADY_EXISTS_ERROR = "Item already exists."
+    NIL                  = iota
+    STOPPING             = iota // Used to declare a stopping error
+    NOT_INPUT_ERROR      = iota
+    TYPE_ERROR           = iota
+    DNE_ERROR            = iota
+    ALREADY_EXISTS_ERROR = iota
+    NOT_READY_ERROR      = iota
+    VALUE_ERROR          = iota
+)
+
+// Used to declare an error in the flow pipeline
+type Error struct{
+    Class int
+    Info  string
+}
+type FlowError struct{
+    *Error
+    Addr Address
+}
+func (e Error) Error() string {
+    return e.Info
+}
+func NewFlowError(Class int, Info string, Addr Address) *FlowError {
+    return &FlowError{&Error{Class, Info}, Addr}
+}
 
 // Types
+const (
     Float    Type = "Float"
     String   Type = "String"
     Int      Type = "Int"

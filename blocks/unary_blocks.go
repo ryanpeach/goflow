@@ -14,7 +14,7 @@ func opUnary(id flow.InstanceID, inT flow.Type, outT flow.Type, outname string,
     runfunc := func(inputs flow.ParamValues,
                      outputs chan flow.DataOut,
                      stop chan bool,
-                     err chan flow.FlowError) {
+                     err chan *flow.FlowError) {
         data := make(flow.ParamValues)
         opfunc(inputs, data)
         out := flow.DataOut{Addr: addr, Values: data}
