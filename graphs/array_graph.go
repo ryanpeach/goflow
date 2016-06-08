@@ -46,10 +46,12 @@ func Sum(id flow.InstanceID) (*flow.Loop, flow.Address) {
     loop.LinkIn("X", "X", cnd_addr)
     loop.LinkIn("X", "X", summation_addr)
     loop.LinkIn(flow.INDEX_NAME, "Index", cnd_addr)
-    loop.LinkIn(flow.INDEX_NAME, "Index", blk_addr)
-    loop.AddRegister("OUT", "Total", summation_addr, 0)
-    loop.LinkOut(cnd_addr, "OUT", DONE_NAME)
-    loop.LinkOut(blk_addr, "OUT", "OUT")
+    loop.LinkIn(flow.INDEX_NAME, "Index", summation_addr)
+    loop.LinkOut(cnd_addr, "OUT", flow.DONE_NAME)
+    loop.LinkOut(summation_addr, "OUT", "OUT")
+    loop.AddDefaultRegister("OUT", "Total", flow.Float, 0)
+    loop.LinkIn("Total", "Total", summation_addr)
+    
     
     return loop, loop_addr
 }
