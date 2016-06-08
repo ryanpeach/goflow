@@ -2,14 +2,14 @@ package blocks
 
 import ".."
 
-func TestUnary(blk flow.FunctionBlock, a, c interface{}, name string) *flow.FlowError {
+func TestUnary(blk flow.FunctionBlock, a, c interface{}, nA, nC, name string) *flow.FlowError {
     // Run a Plus block
     f_out := make(chan flow.DataOut)
     f_stop := make(chan bool)
     f_err := make(chan *flow.FlowError)
 
     // Run block and put a timeout on the stop channel
-    go blk.Run(flow.ParamValues{"IN": a}, f_out, f_stop, f_err, 0)
+    go blk.Run(flow.ParamValues{nA: a}, f_out, f_stop, f_err, 0)
     //go flow.Timeout(f_stop, 100000)
     addr := flow.Address{blk.GetName(), 0}
     
@@ -26,7 +26,7 @@ func TestUnary(blk flow.FunctionBlock, a, c interface{}, name string) *flow.Flow
     }
     
     // Test the output
-    if out.Values["OUT"] != c {
+    if out.Values[nC] != c {
         return flow.NewFlowError(flow.VALUE_ERROR, "Returned wrong value.", addr)
     } else {
         return nil
