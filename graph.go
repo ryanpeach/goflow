@@ -230,7 +230,7 @@ func (g Graph) Run(inputs ParamValues,
         logger.Println("Handling Inputs.")
         logger.Println("Param: ", param, "Val: ", val)
         _ , param_exists := all_data_in[param]                        // Get the input value and check if it exists
-        if CheckType(param.T, val) || !param_exists {                  // Check the type of param relative to val and check if it exists
+        if !param_exists {                                            // Check if it exists
             ok = true                                                  // If it is ok, then return true
             all_data_in[param] = val                                   // Add addr,val to the preexisting map
         } else {                                                       // If type is not ok or param is not in all_data_in
@@ -250,23 +250,19 @@ func (g Graph) Run(inputs ParamValues,
         addr := vals.Addr                       // Get address for easy access
         blk  := all_running[addr]               // Retrieve the block from running
         _, out_params := blk.GetParams()        // Get blk output param types
-        if CheckTypes(V, out_params) {          // If the types are all compatable
-            for param_name, t := range out_params {
-                param := ParamAddress{param_name, addr, t, false}
-                val, val_exists := V[param_name] // Set the output data
-                if val_exists {                  // Only set val if it exists
-                    all_data_out[param] = val
-                } else {
-                    pushError(NOT_READY_ERROR, "All Data Output not present.")
-                    return
-                }
+        for param_name, t := range out_params {
+            param := ParamAddress{param_name, addr, t, false}
+            val, val_exists := V[param_name] // Set the output data
+            if val_exists {                  // Only set val if it exists
+                all_data_out[param] = val
+            } else {
+                pushError(NOT_READY_ERROR, "All Data Output not present.")
+                return
             }
-            delete(all_running, addr)           // Delete block from running
-            all_suspended[addr] = blk           // Add block to suspended
-            delete(all_stops, addr)             // Delete channels
-        } else {                                // If types are incompatible, push an error, graph is broken
-            pushError(TYPE_ERROR, "Output parameter not the right type.")
         }
+        delete(all_running, addr)           // Delete block from running
+        all_suspended[addr] = blk           // Add block to suspended
+        delete(all_stops, addr)             // Delete channels
     }
     
     // Iterates through all given inputs and adds them to method's all_data_ins.
@@ -329,13 +325,7 @@ func (g Graph) Run(inputs ParamValues,
                 param := ParamAddress{param_name, addr, t, true}
                 in_val, val_exists := all_data_in[param]        // Get their stored values
                 if val_exists {
-                    if !CheckType(t, in_val) {
-                        logger.Println(param_name, t, in_val, val_exists)
-                        pushError(TYPE_ERROR, "Input parameter is not the right type.")
-                        return false
-                    } else {
-                        f_in[param_name] = in_val
-                    }
+                    f_in[param_name] = in_val
                 } else {
                     ready = false
                 }

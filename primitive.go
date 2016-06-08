@@ -1,7 +1,6 @@
 package flow
 
 import (
-    "fmt"
     "time"
 )
 
@@ -74,20 +73,15 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
     // Wait for a stop or an output
     for {
         select {
-            case f_return := <-f_out:                                 // If an output is returned
-                if CheckTypes(f_return.Values, m.outputs) {           // Check the types with output parameters
-                    outputs <- DataOut{ADDR, f_return.Values}         // Return the data
-                    return                                            // And stop the function
-                } else {
-                    fmt.Println(f_return)
-                    err <- NewFlowError(TYPE_ERROR, "Wrong output type.", ADDR)
-                    return
-                }
+            case f_return := <-f_out:                             // If an output is returned
+                outputs <- DataOut{ADDR, f_return.Values}         // Return the data
+                return                                            // And stop the function
             case <-stop:                              // If commanded to stop externally
                 f_stop <- true                        // Pass it on to subfunction
                 return                                // And stop immediately
             case temp_err := <-f_err:                 // If there is an error, save it
                 err <- temp_err                       // Pass it up the chain
+                f_stop <- true
                 return                                // And stop the function
         }
     }
