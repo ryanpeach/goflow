@@ -50,13 +50,19 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
                             stop chan bool,
                             err chan *FlowError,
                             id InstanceID) {
-    // Check types to ensure inputs are the type defined in input parameters
     ADDR := Address{m.GetName(), id}
-    if !CheckTypes(inputs, m.inputs) {
-        err <- NewFlowError(TYPE_ERROR, "Inputs are impropper types.", ADDR)
-        return
-    }
     
+    // Check types to ensure inputs are the type defined in input parameters
+    chk_exists := checkInputs(inputs, m.inputs)
+    chk_types  := CheckTypes(inputs, m.inputs)
+    switch {
+        case !chk_exists:
+            err <- NewFlowError(DNE_ERROR, "Not all inputs satisfied.", ADDR)
+            return
+        case !chk_types:
+            err <- NewFlowError(TYPE_ERROR, "Inputs are impropper types.", ADDR)
+            return
+    }
     
     // Duplicate the given channel to pass to the enclosed function
     // Run the function

@@ -34,6 +34,29 @@ func NewGraph(name string, inputs, outputs ParamTypes) (*Graph, *Error) {
     return &Graph{name, nodes, edges, rev_edges, infeed, outfeed, inputs, outputs, constants}, nil
 }
 
+func (g Graph) AddFeed(name string, t Type, is_input bool) (err *Error) {
+    wrapper := func(X ParamTypes) *Error {
+        t2, exists := X[name]
+        if exists {
+            if !CheckSame(t, t2) {
+                return &Error{TYPE_ERROR, "This parameter already exists in a different type."}
+            } else {
+                return &Error{ALREADY_EXISTS_ERROR, "This parameter already exists."}
+            }
+        } else {
+            X[name] = t
+        }
+        return nil
+    }
+
+    if is_input {
+        err = wrapper(g.inputs)
+    } else {
+        err = wrapper(g.outputs)
+    }
+    return
+}
+
 func (g Graph) AddConstant(val interface{}, param_addr Address, param_name string) *Error {
     param, p_exists := g.FindParam(param_name, param_addr)
     if p_exists {
@@ -154,9 +177,15 @@ func (g Graph) Run(inputs ParamValues,
     logger.Println("Running Graph: ", ADDR)
     
     // Check types to ensure inputs are the type defined in input parameters
-    if !CheckTypes(inputs, g.inputs) {
-      err <- NewFlowError(TYPE_ERROR, "Inputs are impropper types.", ADDR)
-      return
+    chk_exists := checkInputs(inputs, g.inputs)
+    chk_types  := CheckTypes(inputs, g.inputs)
+    switch {
+        case !chk_exists:
+            err <- NewFlowError(DNE_ERROR, "Not all inputs satisfied.", ADDR)
+            return
+        case !chk_types:
+            err <- NewFlowError(TYPE_ERROR, "Inputs are impropper types.", ADDR)
+            return
     }
 
     // Declare variables

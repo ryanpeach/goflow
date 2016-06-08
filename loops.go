@@ -8,7 +8,10 @@ const (
 type Loop struct {
     g *Graph
     blk, cnd  Address
-    registers map[ParamAddress]ParamAddress
+    inputs    ParamTypes
+    outputs   ParamTypes
+    registers NameMap
+    initial   ParamValues
 }
 
 func NewLoop(name string, inputs, outputs ParamTypes, blk, stop_condition FunctionBlock) (*Loop, *Error) {
@@ -27,18 +30,19 @@ func NewLoop(name string, inputs, outputs ParamTypes, blk, stop_condition Functi
     }
     
     // Add Done and Index as outputs and inputs
-    inputs[INDEX_NAME] = Int
-    outputs[DONE_NAME] = Bool
+    g_inputs, g_outputs := CopyTypes(inputs), CopyTypes(outputs)
+    g_inputs[INDEX_NAME] = Int
+    g_outputs[DONE_NAME] = Bool
     
     // Initialize variables
-    regs := make(map[ParamAddress]ParamAddress)
+    regs, inits := make(NameMap), make(ParamValues)
     blk_addr, cnd_addr := Address{blk.GetName(), 0}, Address{stop_condition.GetName(), 0}
     
     // Build Graph
-    graph, err1 := NewGraph(name, inputs, outputs)
-    outLoop := Loop{graph, blk_addr, cnd_addr, regs}
-    err2 := outLoop.AddNode(blk, blk_addr)
-    err3 := outLoop.AddNode(stop_condition, cnd_addr)
+    graph, err1 := NewGraph(name, g_inputs, g_outputs)
+    outLoop := Loop{graph, blk_addr, cnd_addr, inputs, outputs, regs, inits}
+    err2 := outLoop.g.AddNode(blk, blk_addr)
+    err3 := outLoop.g.AddNode(stop_condition, cnd_addr)
     
     // Output handling errors
     switch {
@@ -53,11 +57,15 @@ func NewLoop(name string, inputs, outputs ParamTypes, blk, stop_condition Functi
     
 }
 
+// FunctionBlock Fields
+func (l Loop) GetName() string {return l.g.GetName()}
+func (l Loop) GetParams() (inputs ParamTypes, outputs ParamTypes) {
+    return l.inputs, l.outputs
+}
+
 // Inhereted Fields
-func (l Loop) AddNode(blk FunctionBlock, addr Address) (ok *Error) {return l.g.AddNode(blk, addr)}
 func (l Loop) AddEdge(out_addr Address, out_param_name string,
                        in_addr Address, in_param_name string) (ok bool) {return l.g.AddEdge(out_addr, out_param_name, in_addr, in_param_name)}
-func (l Loop) GetName() string {return l.g.GetName()}
 func (l Loop) LinkIn(self_param_name string, in_param_name string, in_addr Address) (ok bool) {
     return l.g.LinkIn(self_param_name, in_param_name, in_addr)
 }
@@ -65,28 +73,156 @@ func (l Loop) LinkOut(out_addr Address, out_param_name string, self_param_name s
     return l.g.LinkOut(out_addr, out_param_name, self_param_name)
 }
 
-// Gets parameters, but ignores Index and Done
-func (l Loop) GetParams() (inputs ParamTypes, outputs ParamTypes) {
-    for name, t := range l.g.inputs {
-        if name != INDEX_NAME {
-            inputs[name] = t
+// Adds parameter "name" of Type "t" to self as an input (if is_input) or output (if !is_input).
+// Also adds it to the graph as a feed.
+func (l Loop) AddFeed(name string, t Type, is_input bool) (err *Error) {
+    // This is the function to be called twice
+    wrapper := func(X ParamTypes) *Error {
+        t2, exists := X[name]
+        if exists {
+            if !CheckSame(t, t2) {
+                return &Error{TYPE_ERROR, "This parameter already exists in a different type."}
+            } else {
+                return &Error{ALREADY_EXISTS_ERROR, "This parameter already exists."}
+            }
+        } else {
+            err := l.g.AddFeed(name, t, is_input)                   // Add the feed to the graph
+            if err == nil || err.Class != ALREADY_EXISTS_ERROR {   // If there is no error, or the error is just that the param already exists
+                X[name] = t                                         // Then add the feed to this loop
+            } else {
+                return err                                          // Otherwise return an error
+            }
         }
+        return nil
     }
-    for name, t := range l.g.outputs {
-        if name != DONE_NAME {
-            outputs[name] = t
-        }
+    
+    if is_input {
+        err = wrapper(l.inputs)
+    } else {
+        err = wrapper(l.outputs)
     }
-    return inputs, outputs
+    return
+}
+// --------------- Novel Methods --------------
+
+// Connects out_name parameter of the inner graph to in_name parameter of the inner graph.
+// Creates a default parameter value for the input
+// Assumes a feed_input does not exist for the loop and instead uses a default value
+// Can create an out_feed, will return an error if out_feed name is taken but type is different
+// Will return an error if the in_name parameter is already connected to a register
+func (l Loop) AddDefaultRegister(out_name, in_name string, t Type, init interface{}) *Error {
+    err1 := l.g.AddFeed(in_name, t, true) // Create an input if one does not already exist
+    err2 := l.g.AddFeed(out_name, t, false)
+    if err1.Class == ALREADY_EXISTS_ERROR {
+        delete(l.inputs, in_name) // If it already existed, remove it from loop inputs so a default value may be used instead
+    }
+    switch {
+        case err2 != nil && err2.Class != ALREADY_EXISTS_ERROR:
+            return err2
+        case !CheckType(t, init):
+            return &Error{TYPE_ERROR, "t and init are incompatible types."}
+        default:
+            _, connected := l.registers[in_name]
+            if !connected {
+                l.registers[in_name] = out_name
+                l.initial[in_name] = init
+            } else {
+                return &Error{ALREADY_EXISTS_ERROR, "Connection to input already exists."}
+            }
+    }
+    return nil
 }
 
-// Novel Methods
-func (l Loop) AddRegister(out_name, in_name string, addr Address, init interface{}) *Error {
+// Will return an error if input in_name does not exist in either loop or graph
+// Can create an out_feed, will return an error if out_feed name is taken but type is different
+// Will return an error if the in_name parameter is already connected to a register
+func (l Loop) AddRegister(out_name, in_name string, t Type) *Error {
+    // Check input feed
+    _, in_exists1 := l.inputs[in_name]
+    _, in_exists2 := l.g.inputs[in_name]
+    err := l.g.AddFeed(out_name, t, false)
+
+    // Handle Errors
+    switch {
+        case !in_exists1 || !in_exists2:
+            return &Error{DNE_ERROR, "Input does not exist."}
+        case err != nil && err.Class != ALREADY_EXISTS_ERROR:
+            return err
+        default:
+            _, connected := l.registers[in_name]
+            if !connected {
+                l.registers[in_name] = out_name
+            } else {
+                return &Error{ALREADY_EXISTS_ERROR, "Connection to input already exists."}
+            }
+    }
     return nil
 }
 
 func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err chan *FlowError, id InstanceID) {
-    return
+    // Declare variables
+    ADDR     := Address{l.GetName(), id}
+    data_out := make(ParamValues)
+    all_done := false
+    loop_i   := 0
+    i_inputs := CopyValues(inputs)
+    i_out    := make(chan DataOut)
+    i_stop   := make(chan bool)
+    i_err    := make(chan *FlowError)
+    
+    // Copy output values to data_out and i_inputs
+    handleOutput := func(out_vals ParamValues) {
+        // Copy output values to data_out
+        for name, val := range out_vals {
+            _, exists := l.outputs[name]
+            if exists {data_out[name] = val}
+            if name == DONE_NAME {all_done = val.(bool)}
+        }
+        
+        // Copy output values to i_inputs
+        for in_name, out_name := range l.registers {
+            val, exists := out_vals[out_name]
+            if exists {
+                i_inputs[in_name] = val
+            }
+        }
+    }
+    
+
+    // Check that all inputs are satisfied
+    chk_exists := checkInputs(inputs, l.inputs)
+    chk_types  := CheckTypes(inputs, l.inputs)
+    switch {
+        case !chk_exists:
+            err <- NewFlowError(DNE_ERROR, "Not all inputs satisfied.", ADDR)
+            return
+        case !chk_types:
+            err <- NewFlowError(TYPE_ERROR, "Inputs are impropper types.", ADDR)
+            return
+    }
+    
+    // Copy initial values
+    for name, val := range l.initial {
+        i_inputs[name] = val
+    }
+    
+    // Run main loop until done is set
+    for !all_done {
+        i_inputs[INDEX_NAME] = loop_i                  // Update index input
+        go l.g.Run(i_inputs, i_out, i_stop, i_err, 0)  // Run once
+        select {
+            case data_out := <- i_out:                 // Listen for data
+                handleOutput(data_out.Values)
+            case <-stop:                               // Listen for external stop command
+                i_stop <- true
+                return
+            case temp_err := <- i_err:                 // Listen for internal error
+                err <- temp_err
+                i_stop <- true
+                return
+        }
+        loop_i += 1                                    // Iterate index value
+    }
 }
 
 // func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err chan *FlowError, id InstanceID) {

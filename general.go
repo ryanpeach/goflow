@@ -12,6 +12,7 @@ import (
 // Used universally inside FunctionBlocks
 type Type string
 type InstanceID int
+type NameMap map[string]string
 type ParamValues map[string]interface{}
 type ParamTypes  map[string]Type
 type DataStream func(inputs ParamValues,
@@ -156,4 +157,30 @@ func CreateLogger(logMode, tag string) *log.Logger {
                 return log.New(out, tag, log.Lshortfile)
             }
     }
+}
+
+// Supporting function for copying ParamTypes map
+func CopyTypes(X ParamTypes) (out ParamTypes) {
+    out = make(ParamTypes)
+    for name, t := range X {
+        out[name] = t
+    }
+    return
+}
+func CopyValues(X ParamValues) (out ParamValues) {
+    out = make(ParamValues)
+    for name, t := range X {
+        out[name] = t
+    }
+    return
+}
+
+func checkInputs(inputs ParamValues, req_inputs ParamTypes) (ok bool) {
+    for name, _ := range req_inputs {
+        _, exists := inputs[name]
+        if !exists {
+            return false
+        }
+    }
+    return true
 }
