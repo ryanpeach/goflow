@@ -113,7 +113,7 @@ func (l Loop) AddFeed(name string, t Type, is_input bool) (err *Error) {
 func (l Loop) AddDefaultRegister(out_name, in_name string, t Type, init interface{}) *Error {
     err1 := l.g.AddFeed(in_name, t, true) // Create an input if one does not already exist
     err2 := l.g.AddFeed(out_name, t, false)
-    if err1.Class == ALREADY_EXISTS_ERROR {
+    if err1 != nil && err1.Class == ALREADY_EXISTS_ERROR {
         delete(l.inputs, in_name) // If it already existed, remove it from loop inputs so a default value may be used instead
     }
     switch {
