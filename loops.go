@@ -6,18 +6,23 @@ const (
 )
 
 type Loop struct {
+    name string
     g *Graph
-    blk, cnd  Address
+    
+    infeed      ParamLstMap    // Connects name of a param in inputs to a ParamAddress of some parameter in some node
+    outfeed     ParamMap    // Connects name of a param in outputs to a ParamAddress of some parameter in some node
     inputs    ParamTypes
     outputs   ParamTypes
+    
+    sources   map[ParamAddress]ParamAddress
     registers NameMap
     initial   ParamValues
 }
 
-func NewLoop(name string, inputs, outputs ParamTypes, blk, stop_condition FunctionBlock) (*Loop, *Error) {
+func NewLoop(name string, inputs, outputs ParamTypes, blk *Graph) (*Loop, *Error) {
     
     // Check that stop_condition has one bool output.
-    _, cnd_out := stop_condition.GetParams()
+    _, cnd_out := blk.GetParams()
     bool_found := false
     for _, t := range cnd_out {
         if t == Bool {
@@ -26,51 +31,71 @@ func NewLoop(name string, inputs, outputs ParamTypes, blk, stop_condition Functi
         }
     }
     if !bool_found {
-        return nil, &Error{TYPE_ERROR, "Stop Condition has no boolean output."}
+        return nil, &Error{TYPE_ERROR, "Block has no boolean output."}
     }
-    
-    // Add Done and Index as outputs and inputs
-    g_inputs, g_outputs := CopyTypes(inputs), CopyTypes(outputs)
-    g_inputs[INDEX_NAME] = Int
-    g_outputs[DONE_NAME] = Bool
     
     // Initialize variables
-    regs, inits := make(NameMap), make(ParamValues)
-    blk_addr, cnd_addr := Address{blk.GetName(), 0}, Address{stop_condition.GetName(), 0}
+    regs, inits     := make(NameMap), make(ParamValues)
+    infeed, outfeed := make(ParamLstMap), make(ParamMap)
+    sources         := make(map[ParamAddress]ParamAddress)
     
-    // Build Graph
-    graph, err1 := NewGraph(name, g_inputs, g_outputs)
-    outLoop := Loop{graph, blk_addr, cnd_addr, inputs, outputs, regs, inits}
-    err2 := outLoop.g.AddNode(blk, blk_addr)
-    err3 := outLoop.g.AddNode(stop_condition, cnd_addr)
+    // Build Loop
+    outLoop := Loop{name, blk, infeed, outfeed, inputs, outputs, sources, regs, inits}
     
-    // Output handling errors
-    switch {
-        case err1 != nil:
-            return nil, err1
-        case err2 != nil:
-            return nil, &Error{err2.Class, "Blk could not be added to graph."}
-        case err3 != nil:
-            return nil, &Error{err3.Class, "Stop Condition could not be added to graph."}
-    }
     return &outLoop, nil
     
 }
 
 // FunctionBlock Fields
-func (l Loop) GetName() string {return l.g.GetName()}
+func (l Loop) GetName() string {return l.name}
 func (l Loop) GetParams() (inputs ParamTypes, outputs ParamTypes) {
-    return l.inputs, l.outputs
+    return CopyTypes(l.inputs), CopyTypes(l.outputs)
 }
 
-// Inhereted Fields
-func (l Loop) AddEdge(out_addr Address, out_param_name string,
-                       in_addr Address, in_param_name string) (ok bool) {return l.g.AddEdge(out_addr, out_param_name, in_addr, in_param_name)}
-func (l Loop) LinkIn(self_param_name string, in_param_name string, in_addr Address) (ok bool) {
-    return l.g.LinkIn(self_param_name, in_param_name, in_addr)
+// Loop Fields
+func (l Loop) LinkIn(self_param_name string, in_param_name string, in_addr Address) *Error {
+    g_ins, _               := l.g.GetParams()
+    g_type, g_exists       := g_ins[in_param_name]
+    self_type, self_exists := l.inputs[self_param_name]
+    in_param               := ParamAddress{l.g.GetName(), Address{l.g.GetName(), 0}, g_type, true}
+    _, link_exists         := l.sources[in_param]
+    _, other_links         := l.infeed[self_param_name]
+    switch {
+        case !g_exists:
+            return &Error{DNE_ERROR, "out_param_name of inner graph does not exist."}
+        case !self_exists && self_param_name != INDEX_NAME && self_param_name != DONE_NAME:
+            return &Error{DNE_ERROR, "self_param_name does not exist."}
+        case link_exists:
+            return &Error{ALREADY_EXISTS_ERROR, "self_param_name is already connected to a parameter."}
+        case !CheckSame(g_type, self_type):
+            return &Error{TYPE_ERROR, "Types are not compatible."}
+        case other_links:
+            l.infeed[self_param_name] = append(l.infeed[self_param_name], in_param)
+        default:
+            l.infeed[self_param_name] = []ParamAddress{in_param}
+    }
+    l.sources[in_param] = ParamAddress{self_param_name, Address{l.name, 0}, self_type, true}
+    return nil
 }
-func (l Loop) LinkOut(out_addr Address, out_param_name string, self_param_name string) (ok bool) {
-    return l.g.LinkOut(out_addr, out_param_name, self_param_name)
+func (l Loop) LinkOut(out_addr Address, out_param_name string, self_param_name string) *Error {
+    _, g_outs              := l.g.GetParams()
+    g_type, g_exists       := g_outs[out_param_name]
+    self_type, self_exists := l.outputs[self_param_name]
+    _, link_exists         := l.outfeed[self_param_name]
+    out_param               := ParamAddress{l.g.GetName(), Address{l.g.GetName(), 0}, g_type, true}
+    switch {
+        case !g_exists:
+            return &Error{DNE_ERROR, "out_param_name of inner graph does not exist."}
+        case !self_exists && self_param_name != INDEX_NAME && self_param_name != DONE_NAME:
+            return &Error{DNE_ERROR, "self_param_name does not exist."}
+        case link_exists:
+            return &Error{ALREADY_EXISTS_ERROR, "self_param_name is already connected to a parameter."}
+        case !CheckSame(g_type, self_type):
+            return &Error{TYPE_ERROR, "Types are not compatible."}
+        default:
+            l.outfeed[self_param_name] = out_param
+    }
+    return nil
 }
 
 // Adds parameter "name" of Type "t" to self as an input (if is_input) or output (if !is_input).
@@ -111,21 +136,23 @@ func (l Loop) AddFeed(name string, t Type, is_input bool) (err *Error) {
 // Can create an out_feed, will return an error if out_feed name is taken but type is different
 // Will return an error if the in_name parameter is already connected to a register
 func (l Loop) AddDefaultRegister(out_name, in_name string, t Type, init interface{}) *Error {
-    err1 := l.g.AddFeed(in_name, t, true) // Create an input if one does not already exist
-    err2 := l.g.AddFeed(out_name, t, false)
-    if err1 != nil && err1.Class == ALREADY_EXISTS_ERROR {
-        delete(l.inputs, in_name) // If it already existed, remove it from loop inputs so a default value may be used instead
-    }
+    ins, outs := l.g.GetParams()
+    t1, exists1 := ins[in_name]
+    t2, exists2 := outs[out_name]
     switch {
-        case err2 != nil && err2.Class != ALREADY_EXISTS_ERROR:
-            return err2
-        case !CheckType(t, init):
+        case !exists1:
+            return &Error{DNE_ERROR, "in_name is not a parameter of graph."}
+        case !exists2:
+            return &Error{DNE_ERROR, "out_name is not a parameter of graph."}
+        case !CheckType(t1, init) || !CheckType(t2, init):
             return &Error{TYPE_ERROR, "t and init are incompatible types."}
         default:
             _, connected := l.registers[in_name]
             if !connected {
                 l.registers[in_name] = out_name
                 l.initial[in_name] = init
+                in_param := ParamAddress{in_name, Address{l.g.GetName(), 0}, t1, true}
+                l.sources[in_param] = ParamAddress{in_name, Address{l.name, 0}, t1, false}
             } else {
                 return &Error{ALREADY_EXISTS_ERROR, "Connection to input already exists."}
             }
@@ -138,16 +165,21 @@ func (l Loop) AddDefaultRegister(out_name, in_name string, t Type, init interfac
 // Will return an error if the in_name parameter is already connected to a register
 func (l Loop) AddRegister(out_name, in_name string, t Type) *Error {
     // Check input feed
-    _, in_exists1 := l.inputs[in_name]
-    _, in_exists2 := l.g.inputs[in_name]
-    err := l.g.AddFeed(out_name, t, false)
+    ins, outs := l.g.GetParams()
+    t1, exists1 := ins[in_name]
+    t2, exists2 := outs[out_name]
+    _, feed_exists := l.infeed[in_name]
 
     // Handle Errors
     switch {
-        case !in_exists1 || !in_exists2:
-            return &Error{DNE_ERROR, "Input does not exist."}
-        case err != nil && err.Class != ALREADY_EXISTS_ERROR:
-            return err
+        case !exists1:
+            return &Error{DNE_ERROR, "in_name is not a parameter of graph."}
+        case !exists2:
+            return &Error{DNE_ERROR, "out_name is not a parameter of graph."}
+        case !feed_exists:
+            return &Error{DNE_ERROR, "in_name must have a feed connected prior to creating a register"}
+        case !CheckType(t1, t2):
+            return &Error{TYPE_ERROR, "in_name and out_name are incompatible types."}
         default:
             _, connected := l.registers[in_name]
             if !connected {
@@ -165,7 +197,7 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
     data_out := make(ParamValues)
     all_done := false
     loop_i   := 0
-    i_inputs := CopyValues(inputs)
+    i_inputs := make(ParamValues)
     i_out    := make(chan DataOut)
     i_stop   := make(chan bool)
     i_err    := make(chan *FlowError)
@@ -188,17 +220,19 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
         }
     }
     
-
-    // Check that all inputs are satisfied
-    chk_exists := checkInputs(inputs, l.inputs)
-    chk_types  := CheckTypes(inputs, l.inputs)
-    switch {
-        case !chk_exists:
-            err <- NewFlowError(DNE_ERROR, "Not all inputs satisfied.", ADDR)
-            return
-        case !chk_types:
-            err <- NewFlowError(TYPE_ERROR, "Inputs are impropper types.", ADDR)
-            return
+    // Handle inputs
+    for name, param_lst := range l.infeed {
+        val, exists := inputs[name]
+        switch {
+            case name == INDEX_NAME:
+            case !exists:
+                err <- NewFlowError(DNE_ERROR, "Not all inputs satisfied.", ADDR)
+                return
+            default:
+                for _, param := range param_lst {
+                    i_inputs[param.Name] = val
+                }
+        }
     }
     
     // Copy initial values

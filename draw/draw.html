@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<canvas id="myCanvas" width="400" height="200" style="border:1px solid #d3d3d3;">
+Your browser does not support the HTML5 canvas tag.</canvas>
+
+<script>
+var canvas = document.getElementById("myCanvas");
+var ctx = canvas.getContext("2d");
+var blocks;
+var WIDTH  = 400;
+var HEIGHT = 200;
+var R = 10;
+var dR = 30;
+
+function drawCircle(r, x, y) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arc(x,y,r,0,2*Math.PI);
+    ctx.closePath();
+    ctx.fill();
+}
+
+function drawRect(h, w, x, y) {
+    ctx.beginPath();
+    ctx.moveTo(x-w/2, y+h/2);
+    ctx.lineTo(x-w/2, y-h/2);
+    ctx.lineTo(x+w/2, y-h/2);
+    ctx.lineTo(x+w/2, y+h/2);
+    ctx.lineTo(x-w/2, y+h/2);
+    ctx.closePath();
+    ctx.fill();
+}
+
+class Parameter {
+    constructor(name, type, is_input) {
+        this.name = name;
+        this.type = type;
+        this.is_input = is_input;
+    }
+    
+    draw(x, y) {
+        ctx.fillStyle = "#FAF7F8";
+        drawCircle(R, x, y);
+    }
+    
+    drag(e) {
+        this.X = e.pageX - canvas.offsetLeft;
+        this.Y = e.pageY - canvas.offsetTop;
+    }
+}
+
+class FunctionBlock {
+    
+    constructor(name, x, y, inputs, outputs) {
+        this.name = name;
+        this.X = x;
+        this.Y = y;
+        this.inputs = inputs;
+        this.outputs = outputs;
+        this.W = 100;
+        this.H = dR;
+        if (inputs.length > outputs.length) {
+            this.H *= inputs.length;
+        } else {
+            this.H *= outputs.length;
+        }
+    }
+    
+    draw() {
+        var in_sz = this.inputs.length;
+        var out_sz = this.outputs.length;
+
+        var start_in  = this.Y - (in_sz-1)*(dR/2);
+        var start_out = this.Y - (out_sz-1)*(dR/2);
+        
+        // Draw Inputs
+        for (var i = 0; i < in_sz; i++) {
+            this.inputs[i].draw((this.X-this.W/2), start_in+dR*i);
+        }
+        
+        // Draw Outputs
+        for (i = 0; i < out_sz; i++) {
+            this.outputs[i].draw((this.X+this.W/2), start_out+dR*i);
+        }
+        
+        // Draw Rectangle
+        ctx.fillStyle = "#FAF7F8";
+        drawRect(this.H,this.W,this.X,this.Y);
+    }
+    
+    drag(e) {
+        this.X = e.pageX - canvas.offsetLeft;
+        this.Y = e.pageY - canvas.offsetTop;
+    }
+}
+
+function clear() {
+    ctx.clearRect(0, 0, WIDTH, HEIGHT);
+}
+
+function draw() {
+    clear();
+    for (var blk in blocks) {
+        blk.draw();
+    }
+    ctx.stroke();
+}
+
+function init() {
+    var inputs = [new Parameter("A","Int",true), new Parameter("B","Int",true)];
+    var outputs = [new Parameter("C","Int",false)];
+    var blk = new FunctionBlock("Hi", 100, 100, inputs, outputs);
+    blocks = [blk];
+    return setInterval(draw, 10);
+}
+
+function beginDrag(e) {
+    var dragging_param;
+    var X = e.pageX - canvas.offsetLeft;
+    var Y = e.pageY - canvas.offsetTop;
+    for (var blk in blocks) {
+        var in_block = (X < blk.X + blk.W/2 + R) &&
+                       (X > blk.X - blk.W/2 - R) &&
+                       (Y < blk.Y + blk.W/2 + R) &&
+                       (Y > blk.Y - blk.W/2 - R);
+        if (in_block) {
+            for (var param in blk.inputs) {
+                dragging_param = (X < param.X + R) &&
+                                 (X > param.X - R) &&
+                                 (Y < param.Y + R) &&
+                                 (Y > param.Y - R);
+                if (dragging_param) {canvas.onmousemove = param.drag;}
+                return;
+            }
+            for (param in blk.outputs) {
+                dragging_param = (X < param.X + R) &&
+                                 (X > param.X - R) &&
+                                 (Y < param.Y + R) &&
+                                 (Y > param.Y - R);
+                if (dragging_param) {canvas.onmousemove = param.drag;}
+                return;
+            }
+            canvas.onmousemove = blk.drag;
+            return;
+        }
+    }
+    return;
+}
+
+function endDrag(e){
+    canvas.onmousemove = null;
+}
+
+init();
+canvas.onmousedown = beginDrag;
+canvas.onmouseup = endDrag;
+
+</script> 
+
+</body>
+</html>

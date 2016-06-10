@@ -40,7 +40,7 @@ func (m PrimitiveBlock) GetName() string {return m.name}
 
 // Returns copies of all parameters in FunctionBlock
 func (m PrimitiveBlock) GetParams() (inputs ParamTypes, outputs ParamTypes) {
-    return m.inputs, m.outputs
+    return CopyTypes(m.inputs), CopyTypes(m.outputs)
 }
 
 // Run the function

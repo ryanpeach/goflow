@@ -9,7 +9,7 @@ type Graph struct {
 
     // Block Inputs
     infeed      ParamLstMap    // Connects name of a param in inputs to a ParamAddress of some parameter in some node
-    outfeed     ParamLstMap    // Connects name of a param in outputs to a ParamAddress of some parameter in some node
+    outfeed     ParamMap    // Connects name of a param in outputs to a ParamAddress of some parameter in some node
     inputs      ParamTypes
     outputs     ParamTypes
     
@@ -28,7 +28,7 @@ func NewGraph(name string, inputs, outputs ParamTypes) (*Graph, *Error) {
     }
     
     nodes, edges    := make(InstanceMap), make(EdgeMap)
-    infeed, outfeed := make(ParamLstMap), make(ParamLstMap)
+    infeed, outfeed := make(ParamLstMap), make(ParamMap)
     rev_edges       := make(map[ParamAddress]ParamAddress)
     constants       := make(map[ParamAddress]interface{})
     return &Graph{name, nodes, edges, rev_edges, infeed, outfeed, inputs, outputs, constants}, nil
@@ -138,6 +138,7 @@ func (g Graph) FindParam(name string, addr Address) (param ParamAddress, exists 
 }
 
 // self[self_param_name] -> in_addr[in_param_name]
+// FIXME: Needs to check if this is already linked
 func (g Graph) LinkIn(self_param_name string, in_param_name string, in_addr Address) (ok bool) {
     param, exists := g.FindParam(in_param_name, in_addr)
     if exists && CheckSame(g.inputs[self_param_name], param.T) {
@@ -149,10 +150,11 @@ func (g Graph) LinkIn(self_param_name string, in_param_name string, in_addr Addr
 }
 
 // out_addr[out_param_name] -> self[self_param_name]
+// FIXME: Needs to check if outfeed already linked
 func (g Graph) LinkOut(out_addr Address, out_param_name string, self_param_name string) (ok bool) {
     param, exists := g.FindParam(out_param_name, out_addr)
     if exists && CheckSame(g.outputs[self_param_name], param.T) {
-        g.outfeed[self_param_name] = append(g.outfeed[self_param_name], ParamAddress{out_param_name, out_addr, param.T, false})
+        g.outfeed[self_param_name] = ParamAddress{out_param_name, out_addr, param.T, false}
         return true
     } else {
         return false
@@ -161,7 +163,7 @@ func (g Graph) LinkOut(out_addr Address, out_param_name string, self_param_name 
 
 // Returns copies of all parameters in FunctionBlock
 func (g Graph) GetParams() (inputs ParamTypes, outputs ParamTypes) {
-    return g.inputs, g.outputs
+    return CopyTypes(g.inputs), CopyTypes(g.outputs)
 }
 
 // Returns a copy of FunctionBlock's InstanceId
@@ -405,13 +407,11 @@ func (g Graph) Run(inputs ParamValues,
         
         // Shift data to the graph_out by iterating through the outfeed
         logger.Println("Shifting Data to Output")
-        for self_param_name, param_lst := range g.outfeed {
-            for _, node_param := range param_lst {
-                val, exists := all_data_out[node_param]
-                if exists {
-                    graph_out[self_param_name] = val
-                    logger.Println("Graph Out: ", val, graph_out[self_param_name])
-                }
+        for self_param_name, out_param := range g.outfeed {
+            val, exists := all_data_out[out_param]
+            if exists {
+                graph_out[self_param_name] = val
+                logger.Println("Graph Out: ", val, graph_out[self_param_name])
             }
         }
         return true
