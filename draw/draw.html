@@ -13,6 +13,7 @@ var WIDTH  = 400;
 var HEIGHT = 200;
 var R = 10;
 var dR = 30;
+var dragging;
 
 function drawCircle(r, x, y) {
     ctx.beginPath();
@@ -39,10 +40,15 @@ class Parameter {
         this.type = type;
         this.is_input = is_input;
     }
+	
+	place(x, y) {
+		this.X = x;
+		this.Y = y;
+	}
     
-    draw(x, y) {
+    draw() {
         ctx.fillStyle = "#FAF7F8";
-        drawCircle(R, x, y);
+        drawCircle(R, this.X, this.Y);
     }
     
     drag(e) {
@@ -69,6 +75,7 @@ class FunctionBlock {
     }
     
     draw() {
+		//console.log("Drawing Block")
         var in_sz = this.inputs.length;
         var out_sz = this.outputs.length;
 
@@ -77,22 +84,26 @@ class FunctionBlock {
         
         // Draw Inputs
         for (var i = 0; i < in_sz; i++) {
-            this.inputs[i].draw((this.X-this.W/2), start_in+dR*i);
+            this.inputs[i].place((this.X-this.W/2), start_in+dR*i);
+			this.inputs[i].draw()
         }
         
         // Draw Outputs
         for (i = 0; i < out_sz; i++) {
-            this.outputs[i].draw((this.X+this.W/2), start_out+dR*i);
+            this.outputs[i].place((this.X+this.W/2), start_out+dR*i);
+			this.outputs[i].draw()
         }
         
         // Draw Rectangle
         ctx.fillStyle = "#FAF7F8";
         drawRect(this.H,this.W,this.X,this.Y);
+		console.log("Drawing... ", this.X, ", ", this.Y)
     }
     
     drag(e) {
         this.X = e.pageX - canvas.offsetLeft;
         this.Y = e.pageY - canvas.offsetTop;
+		console.log("Dragging... ", this.X, ", ", this.Y)
     }
 }
 
@@ -101,14 +112,16 @@ function clear() {
 }
 
 function draw() {
+	//console.log("Drawing")
     clear();
-    for (var blk in blocks) {
-        blk.draw();
+    for (var i = 0; i < blocks.length; i++) {
+        blocks[i].draw();
     }
     ctx.stroke();
 }
 
 function init() {
+	console.log("Initializing")
     var inputs = [new Parameter("A","Int",true), new Parameter("B","Int",true)];
     var outputs = [new Parameter("C","Int",false)];
     var blk = new FunctionBlock("Hi", 100, 100, inputs, outputs);
@@ -117,36 +130,61 @@ function init() {
 }
 
 function beginDrag(e) {
+	console.log("Dragging Detected")
     var dragging_param;
     var X = e.pageX - canvas.offsetLeft;
     var Y = e.pageY - canvas.offsetTop;
-    for (var blk in blocks) {
+    for (var i = 0; i < blocks.length; i++) {
+		var blk = blocks[i]
         var in_block = (X < blk.X + blk.W/2 + R) &&
                        (X > blk.X - blk.W/2 - R) &&
                        (Y < blk.Y + blk.W/2 + R) &&
                        (Y > blk.Y - blk.W/2 - R);
+		console.log("In Block: ", in_block, " ", X, ", ", Y)
         if (in_block) {
-            for (var param in blk.inputs) {
+			var param, j;
+            for (j = 0; j < blk.inputs.length; j++) {
+				param = blk.inputs[j]
                 dragging_param = (X < param.X + R) &&
                                  (X > param.X - R) &&
                                  (Y < param.Y + R) &&
                                  (Y > param.Y - R);
-                if (dragging_param) {canvas.onmousemove = param.drag;}
-                return;
+                if (dragging_param) {
+					dragging = param
+					canvas.onmousemove = DragLine;
+					return;
+				}
             }
-            for (param in blk.outputs) {
+            for (j = 0; j < blk.outputs.length; j++) {
+				param = blk.outputs[j]
                 dragging_param = (X < param.X + R) &&
                                  (X > param.X - R) &&
                                  (Y < param.Y + R) &&
                                  (Y > param.Y - R);
-                if (dragging_param) {canvas.onmousemove = param.drag;}
-                return;
+                if (dragging_param) {
+					dragging = param
+					canvas.onmousemove = DragLine;
+					return;
+				}
             }
-            canvas.onmousemove = blk.drag;
+            dragging = blk
+			canvas.onmousemove = Drag;
+			canvas.onmouseup = endDrag;
             return;
         }
     }
     return;
+}
+
+function Drag(e) {
+	dragging.drag(e)
+}
+
+function DragLine(e) {
+	ctx.beginPath();
+	ctx.moveTo(dragging.X, dragging.Y);
+	ctx.lineTo(e.pageX, e.pageY);
+	ctx.stroke();
 }
 
 function endDrag(e){
@@ -155,7 +193,6 @@ function endDrag(e){
 
 init();
 canvas.onmousedown = beginDrag;
-canvas.onmouseup = endDrag;
 
 </script> 
 

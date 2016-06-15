@@ -160,7 +160,7 @@ func Index(id flow.InstanceID) (flow.FunctionBlock, flow.Address) {
     opfunc := func(in flow.ParamValues, out flow.ParamValues) {
         out["OUT"] = (in["X"].([]float64))[in["Index"].(int)]
     }
-    name := "equals"
+    name := "index"
     addr := flow.Address{name, id}
     return opBinary(addr,flow.NumArray,flow.Int,flow.Float,"X","Index","OUT",name,opfunc), addr
 }

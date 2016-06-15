@@ -8,7 +8,7 @@ func opUnary(id flow.InstanceID, inT flow.Type, outT flow.Type, outname string,
     // Create Plus block
     ins := flow.ParamTypes{"IN": inT}
     outs := flow.ParamTypes{"OUT": outT}
-    addr := flow.Address{outname, 0}
+    addr := flow.Address{outname, id}
     
     // Define the function as a closure
     runfunc := func(inputs flow.ParamValues,

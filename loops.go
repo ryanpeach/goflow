@@ -1,5 +1,9 @@
 package flow
 
+import (
+    "fmt"    
+)
+
 const (
     INDEX_NAME = "I"
     DONE_NAME = "DONE"
@@ -53,17 +57,21 @@ func (l Loop) GetParams() (inputs ParamTypes, outputs ParamTypes) {
 }
 
 // Loop Fields
-func (l Loop) LinkIn(self_param_name string, in_param_name string, in_addr Address) *Error {
+func (l Loop) LinkIn(self_param_name string, in_param_name string) *Error {
     g_ins, _               := l.g.GetParams()
     g_type, g_exists       := g_ins[in_param_name]
     self_type, self_exists := l.inputs[self_param_name]
-    in_param               := ParamAddress{l.g.GetName(), Address{l.g.GetName(), 0}, g_type, true}
+    in_param               := ParamAddress{in_param_name, Address{l.g.GetName(), 0}, g_type, true}
     _, link_exists         := l.sources[in_param]
     _, other_links         := l.infeed[self_param_name]
+    if self_param_name == INDEX_NAME {
+        self_type = Int
+        self_exists = true
+    }
     switch {
         case !g_exists:
             return &Error{DNE_ERROR, "out_param_name of inner graph does not exist."}
-        case !self_exists && self_param_name != INDEX_NAME && self_param_name != DONE_NAME:
+        case !self_exists:
             return &Error{DNE_ERROR, "self_param_name does not exist."}
         case link_exists:
             return &Error{ALREADY_EXISTS_ERROR, "self_param_name is already connected to a parameter."}
@@ -77,16 +85,20 @@ func (l Loop) LinkIn(self_param_name string, in_param_name string, in_addr Addre
     l.sources[in_param] = ParamAddress{self_param_name, Address{l.name, 0}, self_type, true}
     return nil
 }
-func (l Loop) LinkOut(out_addr Address, out_param_name string, self_param_name string) *Error {
+func (l Loop) LinkOut(out_param_name string, self_param_name string) *Error {
     _, g_outs              := l.g.GetParams()
     g_type, g_exists       := g_outs[out_param_name]
     self_type, self_exists := l.outputs[self_param_name]
     _, link_exists         := l.outfeed[self_param_name]
-    out_param               := ParamAddress{l.g.GetName(), Address{l.g.GetName(), 0}, g_type, true}
+    out_param              := ParamAddress{out_param_name, Address{l.g.GetName(), 0}, g_type, true}
+    if self_param_name == DONE_NAME {
+        self_type = Bool
+        self_exists = true
+    }
     switch {
         case !g_exists:
             return &Error{DNE_ERROR, "out_param_name of inner graph does not exist."}
-        case !self_exists && self_param_name != INDEX_NAME && self_param_name != DONE_NAME:
+        case !self_exists:
             return &Error{DNE_ERROR, "self_param_name does not exist."}
         case link_exists:
             return &Error{ALREADY_EXISTS_ERROR, "self_param_name is already connected to a parameter."}
@@ -135,7 +147,7 @@ func (l Loop) AddFeed(name string, t Type, is_input bool) (err *Error) {
 // Assumes a feed_input does not exist for the loop and instead uses a default value
 // Can create an out_feed, will return an error if out_feed name is taken but type is different
 // Will return an error if the in_name parameter is already connected to a register
-func (l Loop) AddDefaultRegister(out_name, in_name string, t Type, init interface{}) *Error {
+func (l Loop) AddDefaultRegister(out_name, in_name string, init interface{}) *Error {
     ins, outs := l.g.GetParams()
     t1, exists1 := ins[in_name]
     t2, exists2 := outs[out_name]
@@ -144,8 +156,8 @@ func (l Loop) AddDefaultRegister(out_name, in_name string, t Type, init interfac
             return &Error{DNE_ERROR, "in_name is not a parameter of graph."}
         case !exists2:
             return &Error{DNE_ERROR, "out_name is not a parameter of graph."}
-        case !CheckType(t1, init) || !CheckType(t2, init):
-            return &Error{TYPE_ERROR, "t and init are incompatible types."}
+        case !CheckSame(t1, t2):
+            return &Error{TYPE_ERROR, fmt.Sprintf("in_name and out_name are incompatible types: %v, %v", t1, t2)}
         default:
             _, connected := l.registers[in_name]
             if !connected {
@@ -194,6 +206,7 @@ func (l Loop) AddRegister(out_name, in_name string, t Type) *Error {
 func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err chan *FlowError, id InstanceID) {
     // Declare variables
     ADDR     := Address{l.GetName(), id}
+    logger   := CreateLogger("none", "[INFO]")
     data_out := make(ParamValues)
     all_done := false
     loop_i   := 0
@@ -205,11 +218,16 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
     // Copy output values to data_out and i_inputs
     handleOutput := func(out_vals ParamValues) {
         // Copy output values to data_out
-        for name, val := range out_vals {
-            _, exists := l.outputs[name]
-            if exists {data_out[name] = val}
-            if name == DONE_NAME {all_done = val.(bool)}
+        for self_name, param := range l.outfeed {
+            val, exists := out_vals[param.Name]
+            if self_name == DONE_NAME && exists {
+                all_done = val.(bool)
+            } else if exists {
+                data_out[self_name] = val
+            }
         }
+        logger.Println("Out data: ", data_out)
+        logger.Println("Done: ", all_done)
         
         // Copy output values to i_inputs
         for in_name, out_name := range l.registers {
@@ -220,18 +238,25 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
         }
     }
     
+    updateIndex := func(val int) {
+        logger.Println("Iteration ", val)
+        param_lst := l.infeed[INDEX_NAME]
+        for _, param := range param_lst {
+            i_inputs[param.Name] = val
+        }
+    }
+    
     // Handle inputs
     for name, param_lst := range l.infeed {
         val, exists := inputs[name]
         switch {
-            case name == INDEX_NAME:
-            case !exists:
-                err <- NewFlowError(DNE_ERROR, "Not all inputs satisfied.", ADDR)
-                return
-            default:
+            case exists || name == INDEX_NAME:
                 for _, param := range param_lst {
                     i_inputs[param.Name] = val
                 }
+            case !exists:
+                err <- NewFlowError(DNE_ERROR, "Not all inputs satisfied: " + name, ADDR)
+                return
         }
     }
     
@@ -242,7 +267,9 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
     
     // Run main loop until done is set
     for !all_done {
-        i_inputs[INDEX_NAME] = loop_i                  // Update index input
+        updateIndex(loop_i)                  // Update index input
+        logger.Println(i_inputs)
+        logger.Println(l.g.GetParams())
         go l.g.Run(i_inputs, i_out, i_stop, i_err, 0)  // Run once
         select {
             case data_out := <- i_out:                 // Listen for data
@@ -257,6 +284,7 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
         }
         loop_i += 1                                    // Iterate index value
     }
+    outputs <- DataOut{ADDR, data_out}
 }
 
 // func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err chan *FlowError, id InstanceID) {

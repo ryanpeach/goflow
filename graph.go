@@ -84,7 +84,7 @@ func (g Graph) AddNode(blk FunctionBlock, addr Address) (ok *Error) {
         g.nodes[addr] = blk
         ok = nil
     } else {
-        ok = &Error{DNE_ERROR, "addr is not a node in blk."}
+        ok = &Error{DNE_ERROR, "blk is already a node in Graph."}
     }
     return
 }
@@ -235,11 +235,8 @@ func (g Graph) Run(inputs ParamValues,
         if !param_exists {                                            // Check if it exists
             ok = true                                                  // If it is ok, then return true
             all_data_in[param] = val                                   // Add addr,val to the preexisting map
-        } else {                                                       // If type is not ok or param is not in all_data_in
-            ok = false                                                 // Return false
-            pushError(TYPE_ERROR, "Input is not the right type.")
         }
-        logger.Println("Check: ", all_data_in[param], all_data_in[param] == val)
+        //logger.Println("Check: ", all_data_in[param], all_data_in[param] == val)
         return
     }
     
@@ -287,6 +284,7 @@ func (g Graph) Run(inputs ParamValues,
 
     // Loads constants into input data
     loadconstants := func() {
+        logger.Println("Loading Constants")
         for param, val := range g.constants {
             handleInput(param, val)
         }
@@ -307,13 +305,7 @@ func (g Graph) Run(inputs ParamValues,
             go blk.Run(f_in, data_flow, f_stop, flow_errs, addr.ID)  // Run the block as a goroutine
             delete(all_waiting, addr)                                // Delete the block from waiting
             all_running[addr] = blk                                  // Add the block to running
-            all_stops[addr] = f_stop                            // Add stop channel to map
-            
-            // Delete all inputs from all_data_in
-            for param_name, _ := range f_in {
-                param, _ := g.FindParam(param_name, addr)
-                delete(all_data_in, param)
-            }
+            all_stops[addr] = f_stop                                // Add stop channel to map
             
         }
         
@@ -384,6 +376,12 @@ func (g Graph) Run(inputs ParamValues,
             if ready {
                 delete(all_suspended, addr)
                 all_waiting[addr] = blk
+                f_in, _ := blk.GetParams()
+                // Delete all inputs from all_data_in
+                for param_name, _ := range f_in {
+                    param, _ := g.FindParam(param_name, addr)
+                    delete(all_data_in, param)
+                }
             }
         }
     }
@@ -434,15 +432,19 @@ func (g Graph) Run(inputs ParamValues,
     loadvars()                   // Begin by loading all inputs into the data maps and adding all blocks to waiting
     logger.Println("Done Loading")
     for running {
+        logger.Println("Running..")
         loadconstants()              // Load all constants before running any block.
+        logger.Println("Constants Loaded")
         checkWaiting()               // Then run waiting blocks that have all inputs availible
+        logger.Println("Data: ", len(all_data_in))
+        logger.Println("Running: ", len(all_running))
         checkRunning()               // Then, wait for some return on a running block
         shiftData()                  // Try to shift outputs to linked inputs
         if checkDone() {             // See if the output map contains enough data to be done
             stopAll()                // Stop all processes
             outputs <- DataOut{Addr: ADDR, Values: graph_out} // And return our outputs
         } else {                     // If we are not done
-            checkSuspended()             // Then, move from the outputs to the inputs and graph_out, and make methods waiting again
+            checkSuspended()         // Then, move from the outputs to the inputs and graph_out, and make methods waiting again
         }    
     }
 }

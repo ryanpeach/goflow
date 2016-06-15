@@ -125,7 +125,14 @@ func AddType(newName Type, compatible []reflect.Type) {
 }
 
 func CheckSame(t1, t2 Type) bool {
-    return t1 == t2
+    switch {
+        case t1 == t2: return true
+        case t1 == Num && t2 == Int:   return true
+        case t1 == Num && t2 == Float: return true
+        case t2 == Num && t1 == Int:   return true
+        case t2 == Num && t2 == Float: return true
+    }
+    return false
 }
 
 // Converts a Num type interface to float64 for numeric processing.
