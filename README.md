@@ -125,10 +125,15 @@ We are done! From here, you can run the graph as a FunctionBlock!
 ### Notes
 I admit, this is verbose, but here's the deal. Because it's made like this, with the graph structure I will soon implement and describe created, which is ran and read from the exact same way (they both use the same interface), you can call long strings of processes. And, an AI program can create graphs intelligently by calling functions like AddNode, AddEdge, RemoveEdge, RemoveNode. I will let you know more once I have implemented that, but that is how it works.
 
+### Improvements
+
+Graph v2.0 removed the memory maps in favor of a goroutine graph structure with edges being channels. This makes golang's internal channel waiting system handle dataflow. This improved speeds from the Nand function from 252640 ns/op to 110463 ns/op, a 250% increase!
 ### Roadmap
  - [x] Primitive Blocks
  - [x] Graphs
- - [ ] Loops (Almost Done)
+ - [x] Loops (Almost Done)
  - [ ] Switches
  - [ ] Custom Types
  - [ ] Easy Accessors and Python Port
+ - [ ] Remove DataOut type
+ - [ ] Remove String Maps in favor of Indexing

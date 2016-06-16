@@ -25,13 +25,24 @@ func BenchmarkNand(b *testing.B) {
     A, B := true, false
     C := !(A && B)
     for i := 0; i < b.N; i++ {
-        blocks.TestBinary(blk, A, B, C, "A", "B", "OUT", name)
+        err := blocks.TestBinary(blk, A, B, C, "A", "B", "OUT", name)
+        if err != nil {
+            b.Error(err.Info)
+        }
     }
 }
 func BenchmarkNand2(b *testing.B) {
-    out := func() bool {return !(true && false)}
+    x, y := true, false
+    z := true
+    nand := func(out chan bool) {
+        out <- !(x && y)
+    }
+    data := make(chan bool)
     for i := 0; i<b.N; i++ {
-        go out()
+        go nand(data)
+        if <-data != z {
+            b.Error("Z != ", z)
+        }
     }
 }
 /*
