@@ -31,25 +31,25 @@ func Sum(id flow.InstanceID) (*flow.Loop, flow.Address) {
     err7  := g.AddNode(toflt2, toflt_addr2)
     
     // Create input links
-    succ1  := g.LinkIn("X",     "X",     index_addr)  // Connect array to array in index retrieval block
-    succ2  := g.LinkIn("Index", "Index", index_addr)  // Connect index to index of index retrieval block
-    succ3  := g.LinkIn("Index", "IN",    toflt_addr2)
-    succ4  := g.LinkIn("X",     "IN",    ln_addr)     // Use the array as the array input of the length block
-    succ5  := g.LinkIn("Total", "B",     sum_addr)    // Use the total so far as the B of the addition block
+    err8  := g.LinkIn("X",     "X",     index_addr)  // Connect array to array in index retrieval block
+    err9  := g.LinkIn("Index", "Index", index_addr)  // Connect index to index of index retrieval block
+    err10  := g.LinkIn("Index", "IN",    toflt_addr2)
+    err11  := g.LinkIn("X",     "IN",    ln_addr)     // Use the array as the array input of the length block
+    err12  := g.LinkIn("Total", "B",     sum_addr)    // Use the total so far as the B of the addition block
 
     // Create edges
-    succ6  := g.AddEdge(ln_addr, "OUT", toflt_addr1, "IN")
-    succ7  := g.AddEdge(toflt_addr1, "OUT", sub_addr, "A")      // Use the output of the length address as the input of the less than block
-    succ8  := g.AddEdge(toflt_addr2, "OUT", eq_addr, "B")      // Use the output of the length address as the input of the less than block
-    succ9  := g.AddEdge(index_addr, "OUT", sum_addr, "A")  // Use the output of the index retrieval as the A of the addition block
-    succ10 := g.AddEdge(sub_addr, "OUT", eq_addr, "A")
+    err13  := g.AddEdge(ln_addr, "OUT", toflt_addr1, "IN")
+    err14  := g.AddEdge(toflt_addr1, "OUT", sub_addr, "A")      // Use the output of the length address as the input of the less than block
+    err15  := g.AddEdge(toflt_addr2, "OUT", eq_addr, "B")      // Use the output of the length address as the input of the less than block
+    err16  := g.AddEdge(index_addr, "OUT", sum_addr, "A")  // Use the output of the index retrieval as the A of the addition block
+    err17 := g.AddEdge(sub_addr, "OUT", eq_addr, "A")
     
     // Create constants
-    err8   := g.AddConstant(1.0, sub_addr, "B")
+    err18   := g.AddConstant(1.0, sub_addr, "B")
         
     // Create output links
-    succ11 := g.LinkOut(sum_addr, "OUT", "OUT")           // The sum output is our total
-    succ12 := g.LinkOut(eq_addr, "OUT", "Done")          // The not output is our done
+    err19 := g.LinkOut(sum_addr, "OUT", "OUT")           // The sum output is our total
+    err20 := g.LinkOut(eq_addr, "OUT", "Done")          // The not output is our done
     
     // Create Loop
     ins  = flow.ParamTypes{"X": flow.NumArray}
@@ -58,15 +58,15 @@ func Sum(id flow.InstanceID) (*flow.Loop, flow.Address) {
     loop_addr := flow.Address{"summation_loop", id}
     
     // Create link inputs
-    err9  := loop.LinkIn("X", "X")
-    err10  := loop.LinkIn(flow.INDEX_NAME, "Index")
+    err21  := loop.LinkIn("X", "X")
+    err22  := loop.LinkIn(flow.INDEX_NAME, "Index")
     
     // Create register
-    err11 := loop.AddDefaultRegister("OUT", "Total", 0.0)
+    err23 := loop.AddDefaultRegister("OUT", "Total", 0.0)
     
     // Create output links
-    err12 := loop.LinkOut("OUT", "OUT")
-    err13 := loop.LinkOut("Done", flow.DONE_NAME)
+    err24 := loop.LinkOut("OUT", "OUT")
+    err25 := loop.LinkOut("Done", flow.DONE_NAME)
 
     switch {
         case err1 != nil:
@@ -94,31 +94,31 @@ func Sum(id flow.InstanceID) (*flow.Loop, flow.Address) {
         case err12 != nil:
             fmt.Println("12: "+err12.Info)
         case err13 != nil:
-            fmt.Println("12: "+err13.Info)
-        case !succ1:
-            fmt.Println("!Succ1")
-        case !succ2:
-            fmt.Println("!Succ2")
-        case !succ3:
-            fmt.Println("!Succ3")
-        case !succ4:
-            fmt.Println("!Succ4")
-        case !succ5:
-            fmt.Println("!Succ5")
-        case !succ6:
-            fmt.Println("!Succ6")
-        case !succ7:
-            fmt.Println("!Succ7")
-        case !succ8:
-            fmt.Println("!Succ8")
-        case !succ9:
-            fmt.Println("!Succ9")
-        case !succ10:
-            fmt.Println("!Succ10")
-        case !succ11:
-            fmt.Println("!Succ11")
-        case !succ12:
-            fmt.Println("!Succ12")
+            fmt.Println("13: "+err13.Info)
+        case err14 != nil:
+            fmt.Println("14: "+err14.Info)
+        case err15 != nil:
+            fmt.Println("15: "+err15.Info)
+        case err16 != nil:
+            fmt.Println("16: "+err16.Info)
+        case err17 != nil:
+            fmt.Println("17: "+err17.Info)
+        case err18 != nil:
+            fmt.Println("18: "+err18.Info)
+        case err19 != nil:
+            fmt.Println("19: "+err19.Info)
+        case err20 != nil:
+            fmt.Println("20: "+err20.Info)
+        case err21 != nil:
+            fmt.Println("21: "+err21.Info)
+        case err22 != nil:
+            fmt.Println("22: "+err22.Info)
+        case err23 != nil:
+            fmt.Println("23: "+err23.Info)
+        case err24 != nil:
+            fmt.Println("24: "+err24.Info)
+        case err25 != nil:
+            fmt.Println("25: "+err25.Info)
     }
     return loop, loop_addr
 }

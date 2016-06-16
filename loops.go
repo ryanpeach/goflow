@@ -110,36 +110,6 @@ func (l Loop) LinkOut(out_param_name string, self_param_name string) *Error {
     return nil
 }
 
-// Adds parameter "name" of Type "t" to self as an input (if is_input) or output (if !is_input).
-// Also adds it to the graph as a feed.
-func (l Loop) AddFeed(name string, t Type, is_input bool) (err *Error) {
-    // This is the function to be called twice
-    wrapper := func(X ParamTypes) *Error {
-        t2, exists := X[name]
-        if exists {
-            if !CheckSame(t, t2) {
-                return &Error{TYPE_ERROR, "This parameter already exists in a different type."}
-            } else {
-                return &Error{ALREADY_EXISTS_ERROR, "This parameter already exists."}
-            }
-        } else {
-            err := l.g.AddFeed(name, t, is_input)                   // Add the feed to the graph
-            if err == nil || err.Class != ALREADY_EXISTS_ERROR {   // If there is no error, or the error is just that the param already exists
-                X[name] = t                                         // Then add the feed to this loop
-            } else {
-                return err                                          // Otherwise return an error
-            }
-        }
-        return nil
-    }
-    
-    if is_input {
-        err = wrapper(l.inputs)
-    } else {
-        err = wrapper(l.outputs)
-    }
-    return
-}
 // --------------- Novel Methods --------------
 
 // Connects out_name parameter of the inner graph to in_name parameter of the inner graph.

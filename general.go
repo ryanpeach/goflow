@@ -130,7 +130,7 @@ func CheckSame(t1, t2 Type) bool {
         case t1 == Num && t2 == Int:   return true
         case t1 == Num && t2 == Float: return true
         case t2 == Num && t1 == Int:   return true
-        case t2 == Num && t2 == Float: return true
+        case t2 == Num && t1 == Float: return true
     }
     return false
 }
