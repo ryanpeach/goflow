@@ -7,7 +7,7 @@ import (
 // The primary interface of the flowchart. Allows running, has a name, and has parameters.
 type FunctionBlock interface{
     Run(inputs ParamValues,
-        outputs chan DataOut,
+        outputs chan ParamValues,
         stop chan bool,
         err chan *FlowError,
         id InstanceID)
@@ -45,7 +45,7 @@ func (m PrimitiveBlock) GetParams() (inputs ParamTypes, outputs ParamTypes) {
 
 // Run the function
 func (m PrimitiveBlock) Run(inputs ParamValues,
-                            outputs chan DataOut,
+                            outputs chan ParamValues,
                             stop chan bool,
                             err chan *FlowError,
                             id InstanceID) {
@@ -66,16 +66,16 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
     // Duplicate the given channel to pass to the enclosed function
     // Run the function
     f_err  := make(chan *FlowError)
-    f_out  := make(chan DataOut)
+    f_out  := make(chan ParamValues)
     f_stop := make(chan bool)
     go m.fn(inputs, f_out, f_stop, f_err)
 
     // Wait for a stop or an output
     for {
         select {
-            case f_return := <-f_out:                             // If an output is returned
-                outputs <- DataOut{ADDR, f_return.Values}         // Return the data
-                return                                            // And stop the function
+            case f_return := <-f_out:                 // If an output is returned
+                outputs <- f_return                   // Return the data
+                return                                // And stop the function
             case <-stop:                              // If commanded to stop externally
                 f_stop <- true                        // Pass it on to subfunction
                 return                                // And stop immediately
@@ -88,11 +88,11 @@ func (m PrimitiveBlock) Run(inputs ParamValues,
 }
 
 // An easy way to initialize a block and get it's channels
-func BlockRun(blk FunctionBlock, f_in ParamValues, id InstanceID) (f_out chan DataOut,
+func BlockRun(blk FunctionBlock, f_in ParamValues, id InstanceID) (f_out chan ParamValues,
                                                                    f_stop chan bool,
                                                                    f_err chan *FlowError) {
     // Initialize channels
-    f_out  = make(chan DataOut)
+    f_out  = make(chan ParamValues)
     f_stop = make(chan bool)
     f_err  = make(chan *FlowError)
         

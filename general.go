@@ -16,7 +16,7 @@ type NameMap map[string]string
 type ParamValues map[string]interface{}
 type ParamTypes  map[string]Type
 type DataStream func(inputs ParamValues,
-                     outputs chan DataOut,
+                     outputs chan ParamValues,
                      stop chan bool,
                      err chan *FlowError)
 type InstanceMap map[Address]FunctionBlock
@@ -35,12 +35,6 @@ type ParamAddress struct {
     Addr     Address
     T        Type
     is_input bool
-}
-
-// Used to store the outputs of a FunctionBlock, while keeping it's reference.
-type DataOut struct {
-    Addr Address
-    Values  ParamValues
 }
 
 const (

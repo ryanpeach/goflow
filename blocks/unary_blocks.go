@@ -12,12 +12,12 @@ func opUnary(id flow.InstanceID, inT flow.Type, outT flow.Type, outname string,
     
     // Define the function as a closure
     runfunc := func(inputs flow.ParamValues,
-                     outputs chan flow.DataOut,
+                     outputs chan flow.ParamValues,
                      stop chan bool,
                      err chan *flow.FlowError) {
         data := make(flow.ParamValues)
         opfunc(inputs, data)
-        out := flow.DataOut{Addr: addr, Values: data}
+        out := data
         outputs <- out
         return
     }

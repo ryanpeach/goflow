@@ -11,13 +11,12 @@ func opBinary(addr flow.Address, aT,bT,cT flow.Type, aN,bN,cN string,
     
     // Define the function as a closure
     runfunc := func(inputs flow.ParamValues,
-                     outputs chan flow.DataOut,
+                     outputs chan flow.ParamValues,
                      stop chan bool,
                      err chan *flow.FlowError) {
         data := make(flow.ParamValues)
         opfunc(inputs, data)
-        out := flow.DataOut{Addr: addr, Values: data}
-        outputs <- out
+        outputs <- data
         return
     }
     

@@ -16,7 +16,7 @@ func (n Node) Run(stop chan bool, err chan *FlowError, id InstanceID) {
     }
     
     logger.Println(n.f.GetName(), "\tRunning... ")
-    blk_outs := make(chan DataOut, 1)
+    blk_outs := make(chan ParamValues, 1)
     blk_stop := make(chan bool, 1)
     blk_err  := make(chan *FlowError, 1)
     go n.f.Run(blk_ins, blk_outs, blk_stop, blk_err, id)
@@ -25,7 +25,7 @@ func (n Node) Run(stop chan bool, err chan *FlowError, id InstanceID) {
     select {
         case out := <- blk_outs:
             for name, out_param := range n.outputs {
-                val, exists := out.Values[name]
+                val, exists := out[name]
                 if exists {
                     out_param.PassValue(val)
                 }
@@ -243,7 +243,7 @@ func (g Graph) GetParams() (inputs, outputs ParamTypes) {
 func (g Graph) GetName() string {return g.name}
 
 func (g Graph) Run(inputs ParamValues,
-                   outputs chan DataOut,
+                   outputs chan ParamValues,
                    stop chan bool,
                    err chan *FlowError, id InstanceID) {
     
@@ -290,7 +290,7 @@ func (g Graph) Run(inputs ParamValues,
 
     // Wait for all output parameters to be set
     logger.Println("Waiting...")
-    data_out := DataOut{Address{g.name, id}, make(ParamValues)}
+    data_out := make(ParamValues)
     for name, out_param := range g.outputs {
         logger.Println(name)
         select {
@@ -304,10 +304,10 @@ func (g Graph) Run(inputs ParamValues,
                 return
             case temp := <-out_param.val:
                 logger.Println(temp)
-                data_out.Values[name] = temp
+                data_out[name] = temp
         }
         logger.Println("-------------------------------")
-        logger.Println(data_out.Values)
+        logger.Println(data_out)
     }
     
     // If you made it this far, return the output

@@ -173,7 +173,7 @@ func (l Loop) AddRegister(out_name, in_name string, t Type) *Error {
     return nil
 }
 
-func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err chan *FlowError, id InstanceID) {
+func (l Loop) Run(inputs ParamValues, outputs chan ParamValues, stop chan bool, err chan *FlowError, id InstanceID) {
     // Declare variables
     ADDR     := Address{l.GetName(), id}
     logger   := CreateLogger("none", "[INFO]")
@@ -181,7 +181,7 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
     all_done := false
     loop_i   := 0
     i_inputs := make(ParamValues)
-    i_out    := make(chan DataOut)
+    i_out    := make(chan ParamValues)
     i_stop   := make(chan bool)
     i_err    := make(chan *FlowError)
     
@@ -243,7 +243,7 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
         go l.g.Run(i_inputs, i_out, i_stop, i_err, 0)  // Run once
         select {
             case data_out := <- i_out:                 // Listen for data
-                handleOutput(data_out.Values)
+                handleOutput(data_out)
             case <-stop:                               // Listen for external stop command
                 i_stop <- true
                 return
@@ -254,7 +254,7 @@ func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err 
         }
         loop_i += 1                                    // Iterate index value
     }
-    outputs <- DataOut{ADDR, data_out}
+    outputs <- data_out
 }
 
 // func (l Loop) Run(inputs ParamValues, outputs chan DataOut, stop chan bool, err chan *FlowError, id InstanceID) {

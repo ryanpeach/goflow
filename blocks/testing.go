@@ -4,7 +4,7 @@ import ".."
 
 func TestUnary(blk flow.FunctionBlock, a, c interface{}, nA, nC, name string) *flow.FlowError {
     // Run a Plus block
-    f_out := make(chan flow.DataOut)
+    f_out := make(chan flow.ParamValues)
     f_stop := make(chan bool)
     f_err := make(chan *flow.FlowError)
 
@@ -14,7 +14,7 @@ func TestUnary(blk flow.FunctionBlock, a, c interface{}, nA, nC, name string) *f
     addr := flow.Address{blk.GetName(), 0}
     
     // Wait for output or error
-    var out flow.DataOut
+    var out flow.ParamValues
     var cont bool = true
     for cont {
         select {
@@ -26,7 +26,7 @@ func TestUnary(blk flow.FunctionBlock, a, c interface{}, nA, nC, name string) *f
     }
     
     // Test the output
-    if out.Values[nC] != c {
+    if out[nC] != c {
         return flow.NewFlowError(flow.VALUE_ERROR, "Returned wrong value.", addr)
     } else {
         return nil
@@ -36,7 +36,7 @@ func TestUnary(blk flow.FunctionBlock, a, c interface{}, nA, nC, name string) *f
 func TestBinary(blk flow.FunctionBlock, a, b, c interface{}, aN, bN, cN, name string) *flow.FlowError {
     
     // Run a Plus block
-    f_out := make(chan flow.DataOut)
+    f_out := make(chan flow.ParamValues)
     f_stop := make(chan bool)
     f_err := make(chan *flow.FlowError)
 
@@ -46,7 +46,7 @@ func TestBinary(blk flow.FunctionBlock, a, b, c interface{}, aN, bN, cN, name st
     addr := flow.Address{blk.GetName(), 0}
     
     // Wait for output or error
-    var out flow.DataOut
+    var out flow.ParamValues
     var cont bool = true
     for cont {
         select {
@@ -58,7 +58,7 @@ func TestBinary(blk flow.FunctionBlock, a, b, c interface{}, aN, bN, cN, name st
     }
     
     // Test the output
-    if out.Values[cN] != c {
+    if out[cN] != c {
         return flow.NewFlowError(flow.VALUE_ERROR, "Returned wrong value.", addr)
     } else {
         return nil
