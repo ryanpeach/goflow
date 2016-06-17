@@ -1,34 +1,33 @@
 package graphs
 
 import (
-    ".."
-    "../blocks"
+	".."
+	"../blocks"
 )
 
 func Nand(id flow.InstanceID) (*flow.Graph, flow.Address) {
-    // Create Graph
-    ins  := flow.ParamTypes{"A": flow.Bool, "B": flow.Bool}
-    outs := flow.ParamTypes{"OUT": flow.Bool}
-    graph, _ := flow.NewGraph("logical_nand", ins, outs)
-    addr := flow.Address{"logical_nand", id}
-    
-    // Create Blocks
-    and, and_addr := blocks.And(0)
-    not, not_addr := blocks.InvBool(0)
-    
-    // Add Nodes
-    graph.AddNode(and, and_addr)
-    graph.AddNode(not, not_addr)
-    
-    // Add Edges
-    graph.LinkIn("A", "A", and_addr)
-    graph.LinkIn("B", "B", and_addr)
-    graph.AddEdge(and_addr, "OUT", not_addr, "IN")
-    graph.LinkOut(not_addr, "OUT", "OUT")
-    
-    return graph, addr
+	// Create Graph
+	ins := flow.ParamTypes{"A": flow.Bool, "B": flow.Bool}
+	outs := flow.ParamTypes{"OUT": flow.Bool}
+	graph, _ := flow.NewGraph("logical_nand", ins, outs)
+	addr := flow.Address{"logical_nand", id}
+
+	// Create Blocks
+	and, and_addr := blocks.And(0)
+	not, not_addr := blocks.InvBool(0)
+
+	// Add Nodes
+	graph.AddNode(and, and_addr)
+	graph.AddNode(not, not_addr)
+
+	// Add Edges
+	graph.LinkIn("A", "A", and_addr)
+	graph.LinkIn("B", "B", and_addr)
+	graph.AddEdge(and_addr, "OUT", not_addr, "IN")
+	graph.LinkOut(not_addr, "OUT", "OUT")
+
+	return graph, addr
 }
-    
 
 /*
 func Nor(id InstanceID) FunctionBlock {

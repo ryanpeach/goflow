@@ -131,9 +131,9 @@ Graph v2.0 removed the memory maps in favor of a goroutine graph structure with 
 ### Roadmap
  - [x] Primitive Blocks
  - [x] Graphs
- - [x] Loops (Almost Done)
- - [ ] Switches
- - [ ] Custom Types
+ - [x] Loops
+ - [x] Switches (Implemented but Untested in Graphs)
+ - [x] Custom Types
+ - [ ] Webapp GUI (In progress)
  - [ ] Easy Accessors and Python Port
- - [ ] Remove DataOut type
- - [ ] Remove String Maps in favor of Indexing
+ - [ ] Remove String Maps in favor of Indexing (Maybe)
